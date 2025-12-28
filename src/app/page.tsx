@@ -219,7 +219,9 @@ export default function Home() {
               <AppIcon className="h-8 w-8" />
               <span className="font-semibold">IdeaBoard</span>
             </div>
-            <p className="text-sm text-muted-foreground">© 2024 IdeaBoard. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} IdeaBoard. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
