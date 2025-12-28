@@ -567,6 +567,239 @@ Containers can be referenced as read-only components throughout the board:
 | Session Expiry     | Auto-logout after 30 days of inactivity | P0       |
 | Secure Tokens      | JWT with refresh token rotation         | P0       |
 
+### 4.9 Export & Import System
+
+Users can export stories for backup, sharing, or migration purposes. Two formats are supported for single stories, plus bulk export for all stories.
+
+#### 4.9.1 Export Formats
+
+| Format   | Extension | Description                                                    | Priority |
+| -------- | --------- | -------------------------------------------------------------- | -------- |
+| Full     | `.ibs`    | **I**dea**B**oard **S**tory - compressed archive with ALL data | P0       |
+| Portable | `.zip`    | ZIP archive with JSON files, fully importable                  | P0       |
+| Bulk     | `.zip`    | ZIP containing multiple `.ibs` files (all user stories)        | P1       |
+
+#### 4.9.2 Full Export (.ibs Format)
+
+The `.ibs` (**I**dea**B**oard **S**tory) format is a custom compressed archive containing complete story data for full backup and restoration.
+
+**Contents:**
+
+```bash
+story.ibs (compressed archive)
+├── manifest.json           # Version, export date, checksums
+├── story.json              # Story metadata and settings
+├── components.json         # All components with values
+├── boards/
+│   ├── {board-id}.json     # Board data, viewport, settings
+│   └── ...
+├── containers/
+│   ├── {container-id}.json # Container data with mini_board_data
+│   └── ...
+├── notes/
+│   ├── {note-id}.json      # Full note data including content
+│   └── ...
+├── connections/
+│   ├── {connection-id}.json
+│   └── ...
+├── assets/
+│   ├── thumbnails/         # Story/board thumbnails
+│   └── attachments/        # Embedded file attachments
+└── history/                # Optional: version history snapshots
+    └── versions.json
+```
+
+**manifest.json Structure:**
+
+```json
+{
+  "format_version": "1.0",
+  "app_version": "1.0.0",
+  "export_date": "2025-12-29T10:00:00Z",
+  "story_id": "uuid",
+  "story_title": "My Story",
+  "checksum": "sha256-hash",
+  "includes_history": true,
+  "includes_assets": true,
+  "total_boards": 5,
+  "total_notes": 120,
+  "total_components": 15
+}
+```
+
+| Feature                  | Description                                    | Priority |
+| ------------------------ | ---------------------------------------------- | -------- |
+| Complete Data            | All story data including history               | P0       |
+| Asset Embedding          | Thumbnails and attachments included            | P0       |
+| Compression              | gzip/deflate for smaller file size             | P0       |
+| Integrity Check          | SHA-256 checksum for validation                | P1       |
+| Version History          | Optional inclusion of version snapshots        | P2       |
+| Password Protection      | Optional encryption with user password         | P2       |
+
+#### 4.9.3 Portable Export (.zip Format)
+
+The `.zip` format provides a human-readable, fully importable export. All necessary data is included so the story can be imported back into IdeaBoard.
+
+**Contents:**
+
+```bash
+story-export.zip
+├── manifest.json           # Format version, export info
+├── story.json              # Story metadata and settings
+├── components.json         # All components with full data
+└── boards/
+    ├── {board-name}.json   # Board with embedded notes/connections/containers
+    └── ...
+```
+
+**story.json Structure:**
+
+```json
+{
+  "title": "My Story",
+  "description": "Story description",
+  "settings": {},
+  "created_at": "2025-12-29T10:00:00Z",
+  "exported_at": "2025-12-29T12:00:00Z"
+}
+```
+
+**board-{name}.json Structure:**
+
+```json
+{
+  "title": "Main Board",
+  "description": "The main storyline",
+  "sort_order": 0,
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "settings": {},
+  "notes": [
+    {
+      "ref_id": "note-1",
+      "title": "Chapter 1",
+      "type": "normal",
+      "content": { "type": "doc", "content": [...] },
+      "position": { "x": 100, "y": 100 },
+      "size": { "width": 200, "height": 150 },
+      "color": "#FFFFFF",
+      "tags": ["intro"]
+    }
+  ],
+  "connections": [
+    {
+      "from_ref": "note-1",
+      "to_ref": "note-2",
+      "source_anchor": "right",
+      "target_anchor": "left",
+      "label": "Go north",
+      "color": "#333333",
+      "style": "solid",
+      "thickness": 2,
+      "arrow_type": "single",
+      "curvature": "curved"
+    }
+  ],
+  "containers": [
+    {
+      "ref_id": "container-1",
+      "name": "Combat Section",
+      "description": "All combat scenes",
+      "position": { "x": 500, "y": 300 },
+      "size": { "width": 400, "height": 300 },
+      "color": "#FFF3E0",
+      "mini_board_data": {
+        "notes": [...],
+        "connections": [...]
+      }
+    }
+  ]
+}
+```
+
+| Feature               | Description                                      | Priority |
+| --------------------- | ------------------------------------------------ | -------- |
+| Human Readable        | JSON files can be opened in any text editor      | P0       |
+| Fully Importable      | Contains all data needed to recreate the story   | P0       |
+| Reference IDs         | Uses local ref_ids for cross-referencing         | P0       |
+| Rich Text Preserved   | Full TipTap/ProseMirror content structure kept   | P0       |
+| Standard ZIP          | Compatible with any ZIP tool                     | P0       |
+| Selective Export      | Choose specific boards to export                 | P1       |
+| No External Assets    | Thumbnails/attachments not included (lighter)    | P0       |
+
+#### 4.9.4 Bulk Export (All Stories)
+
+Export all user stories in a single ZIP file containing individual `.ibs` files.
+
+**Contents:**
+
+```bash
+ideaboard-backup-2025-12-29.zip
+├── manifest.json           # Export metadata, story list
+├── my-first-story.ibs
+├── adventure-game.ibs
+├── project-notes.ibs
+└── ...
+```
+
+**manifest.json Structure:**
+
+```json
+{
+  "format_version": "1.0",
+  "app_version": "1.0.0",
+  "export_date": "2025-12-29T10:00:00Z",
+  "user_id": "uuid",
+  "total_stories": 15,
+  "stories": [
+    { "filename": "my-first-story.ibs", "title": "My First Story", "boards": 3 },
+    { "filename": "adventure-game.ibs", "title": "Adventure Game", "boards": 12 }
+  ]
+}
+```
+
+| Feature               | Description                                    | Priority |
+| --------------------- | ---------------------------------------------- | -------- |
+| Full Backup           | All stories exported as .ibs files             | P1       |
+| Single Download       | One ZIP file for entire account                | P1       |
+| Manifest              | Index of all included stories                  | P1       |
+| Selective Bulk        | Choose which stories to include                | P2       |
+| Scheduled Backup      | Auto-export on schedule (weekly/monthly)       | P2       |
+
+#### 4.9.5 Import System
+
+**Supported Import Formats:**
+
+- `.ibs` - Single story full restore
+- `.zip` - Single story portable format
+- `.zip` (bulk) - Multiple .ibs files from bulk export
+
+| Feature                  | Description                                        | Priority |
+| ------------------------ | -------------------------------------------------- | -------- |
+| Import .ibs              | Full restoration of exported story                 | P0       |
+| Import .zip (story)      | Restore story from portable format                 | P0       |
+| Import .zip (bulk)       | Import multiple stories from bulk export           | P1       |
+| Duplicate Detection      | Warn if importing story that already exists        | P1       |
+| Import as New            | Always create as new story (new IDs)               | P0       |
+| Import & Merge           | Merge into existing story (advanced)               | P2       |
+| Conflict Resolution      | Handle component name conflicts                    | P1       |
+| Validation               | Check file integrity before import                 | P0       |
+| Progress Indicator       | Show import progress for large stories             | P1       |
+| Import Preview           | Preview contents before importing                  | P1       |
+| Bulk Import Selection    | Choose which stories to import from bulk ZIP       | P1       |
+
+#### 4.9.6 Export/Import UI
+
+| Feature              | Description                                    | Priority |
+| -------------------- | ---------------------------------------------- | -------- |
+| Export from Menu     | Story menu → Export → Choose format            | P0       |
+| Export from Dashboard| Right-click story → Export                     | P0       |
+| Bulk Export Button   | Dashboard → Export All Stories                 | P1       |
+| Import from Menu     | File → Import Story                            | P0       |
+| Drag & Drop Import   | Drop .ibs or .zip file onto dashboard          | P1       |
+| Export Options Modal | Select format, include history, password, etc. | P0       |
+| Import Preview Modal | Show story summary before confirming import    | P1       |
+| Bulk Import Modal    | Select which stories to import from bulk ZIP   | P1       |
+
 ---
 
 ## 5. User Experience

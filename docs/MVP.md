@@ -34,6 +34,8 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | Technical Notes | v1.1 |
 | Containers | v1.1 |
 | Multi-board per story | v1.1 |
+| Export/Import (.ibs full) | v1.1 |
+| Export/Import (.zip light) | v1.1 |
 | Real-time collaboration | v1.2 |
 | Sharing & permissions | v1.2 |
 | Version history | v1.2 |
