@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Lightbulb, Settings, LogOut, User, Menu, X } from 'lucide-react';
+import { Settings, LogOut, User, Menu, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useUserStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
+import { AppIcon } from '@/components/icons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,7 +54,7 @@ export function Navbar() {
     <header className="border-b bg-background/95 backdrop-blur transition-all duration-300 ease-in-out supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 w-full items-center justify-between px-4 transition-all duration-300 ease-in-out sm:px-6 md:px-8 lg:px-12">
         <Link href="/stories" className="flex items-center gap-2 transition-all duration-200">
-          <Lightbulb className="h-5 w-5 text-primary transition-all duration-200 sm:h-6 sm:w-6" />
+          <AppIcon className="h-7 w-7 transition-all duration-200 sm:h-8 sm:w-8" />
           <span className="text-lg font-bold transition-all duration-200 sm:text-xl">
             IdeaBoard
           </span>

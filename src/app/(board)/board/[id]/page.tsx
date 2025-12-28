@@ -30,6 +30,16 @@ export default function BoardPage() {
   // Debounce ref for auto-save
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Update document title when story loads
+  useEffect(() => {
+    if (currentStory?.title) {
+      document.title = `${currentStory.title} | IdeaBoard`;
+    }
+    return () => {
+      document.title = 'IdeaBoard - Visual Whiteboard for Ideas';
+    };
+  }, [currentStory?.title]);
+
   // Fetch story and board data
   useEffect(() => {
     const fetchData = async () => {

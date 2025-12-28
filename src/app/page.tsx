@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Layers, Link2, Sparkles, Layout, Zap, Users, Lock } from 'lucide-react';
+import { ArrowRight, Layers, Link2, Sparkles, Zap, Users, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/common/theme-toggle';
+import { AppIcon } from '@/components/icons';
 
 export default function Home() {
   return (
@@ -12,9 +13,7 @@ export default function Home() {
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm transition-all duration-300">
         <div className="container mx-auto flex items-center justify-between px-4 py-3 transition-all duration-300 sm:py-4 md:px-6">
           <div className="flex items-center gap-2 transition-all duration-200">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 sm:h-9 sm:w-9">
-              <Layout className="h-4 w-4 text-primary-foreground transition-all duration-200 sm:h-5 sm:w-5" />
-            </div>
+            <AppIcon className="h-9 w-9 transition-all duration-200 sm:h-10 sm:w-10" />
             <span className="text-lg font-bold tracking-tight transition-all duration-200 sm:text-xl">
               IdeaBoard
             </span>
@@ -217,9 +216,7 @@ export default function Home() {
         <div className="container mx-auto px-4 transition-all duration-300 md:px-6">
           <div className="flex flex-col items-center justify-between gap-4 transition-all duration-200 sm:gap-6 md:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Layout className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <AppIcon className="h-8 w-8" />
               <span className="font-semibold">IdeaBoard</span>
             </div>
             <p className="text-sm text-muted-foreground">© 2024 IdeaBoard. All rights reserved.</p>

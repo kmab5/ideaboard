@@ -20,6 +20,16 @@ export const metadata: Metadata = {
   description:
     'Organize your ideas visually with IdeaBoard. Create infinite canvases, connect notes, and build interactive narratives.',
   keywords: ['whiteboard', 'notes', 'visual thinking', 'idea organization', 'mind map'],
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
+  openGraph: {
+    title: 'IdeaBoard - Visual Whiteboard for Ideas',
+    description:
+      'Organize your ideas visually with IdeaBoard. Create infinite canvases, connect notes, and build interactive narratives.',
+    images: ['/icon.png'],
+  },
 };
 
 export default function RootLayout({
@@ -30,12 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
           <Toaster position="bottom-right" richColors closeButton />
         </ThemeProvider>
