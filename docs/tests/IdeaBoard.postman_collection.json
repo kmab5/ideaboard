@@ -1,0 +1,2142 @@
+{
+    "info": {
+        "name": "IdeaBoard API",
+        "description": "API collection for IdeaBoard - Visual Note Organizing App\n\nUsing Supabase REST API (PostgREST)\n\n**SETUP:**\n1. Set `baseUrl` to your Supabase URL\n2. Set `anonKey` to your Supabase anon key\n3. Set `testEmail` to YOUR real email\n4. Run Sign Up or Sign In first",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_postman_id": "ideaboard-api-collection"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "https://your-project.supabase.co",
+            "type": "string"
+        },
+        {
+            "key": "anonKey",
+            "value": "your-anon-key",
+            "type": "string"
+        },
+        {
+            "key": "testEmail",
+            "value": "your-email@gmail.com",
+            "type": "string",
+            "description": "Use YOUR real email - example.com is blocked by Supabase"
+        },
+        {
+            "key": "testPassword",
+            "value": "Password123!",
+            "type": "string"
+        },
+        {
+            "key": "accessToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "refreshToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "userId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "storyId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "boardId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "noteId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "componentId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "connectionId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "containerId",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{accessToken}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Sign Up",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response.access_token) {",
+                                    "    pm.collectionVariables.set('accessToken', response.access_token);",
+                                    "    pm.collectionVariables.set('refreshToken', response.refresh_token);",
+                                    "    pm.collectionVariables.set('userId', response.user.id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Has access token', () => pm.expect(response.access_token).to.exist);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"data\": {\n    \"display_name\": \"Test User\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/v1/signup",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "v1",
+                                "signup"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Sign In (Email)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response.access_token) {",
+                                    "    pm.collectionVariables.set('accessToken', response.access_token);",
+                                    "    pm.collectionVariables.set('refreshToken', response.refresh_token);",
+                                    "    pm.collectionVariables.set('userId', response.user.id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Has access token', () => pm.expect(response.access_token).to.exist);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/v1/token?grant_type=password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "v1",
+                                "token"
+                            ],
+                            "query": [
+                                {
+                                    "key": "grant_type",
+                                    "value": "password"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Refresh Token",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response.access_token) {",
+                                    "    pm.collectionVariables.set('accessToken', response.access_token);",
+                                    "    pm.collectionVariables.set('refreshToken', response.refresh_token);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/v1/token?grant_type=refresh_token",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "v1",
+                                "token"
+                            ],
+                            "query": [
+                                {
+                                    "key": "grant_type",
+                                    "value": "refresh_token"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Current User",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Has user id', () => pm.expect(pm.response.json().id).to.exist);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/v1/user",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "v1",
+                                "user"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Sign Out",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/v1/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "v1",
+                                "logout"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Request Password Reset",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{testEmail}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/v1/recover",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "v1",
+                                "recover"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Profiles",
+            "item": [
+                {
+                    "name": "Get My Profile",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Is array with one item', () => {",
+                                    "    const data = pm.response.json();",
+                                    "    pm.expect(data).to.be.an('array').with.lengthOf(1);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/profiles?id=eq.{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "profiles"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{userId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Profile",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 or 204', () => {",
+                                    "    pm.expect([200, 204]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"display_name\": \"Updated Name\",\n  \"bio\": \"My bio text\",\n  \"avatar_type\": \"dicebear\",\n  \"dicebear_style\": \"avataaars\",\n  \"dicebear_seed\": \"my-random-seed\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/profiles?id=eq.{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "profiles"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{userId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Stories",
+            "item": [
+                {
+                    "name": "Create Story",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response[0]) {",
+                                    "    pm.collectionVariables.set('storyId', response[0].id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                                    "pm.test('Story created', () => pm.expect(response[0].title).to.exist);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"My First Story\",\n  \"description\": \"An interactive fiction adventure\",\n  \"user_id\": \"{{userId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/stories",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "stories"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get All My Stories",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Is array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/stories?user_id=eq.{{userId}}&order=updated_at.desc",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "stories"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "eq.{{userId}}"
+                                },
+                                {
+                                    "key": "order",
+                                    "value": "updated_at.desc"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Story by ID",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/vnd.pgrst.object+json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/stories?id=eq.{{storyId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "stories"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{storyId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Story",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 or 204', () => {",
+                                    "    pm.expect([200, 204]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Story Title\",\n  \"description\": \"Updated description\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/stories?id=eq.{{storyId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "stories"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{storyId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Toggle Favorite",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_favorite\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/stories?id=eq.{{storyId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "stories"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{storyId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Archive Story",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_archived\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/stories?id=eq.{{storyId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "stories"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{storyId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Story",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/stories?id=eq.{{storyId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "stories"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{storyId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Boards",
+            "item": [
+                {
+                    "name": "Create Board",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response[0]) {",
+                                    "    pm.collectionVariables.set('boardId', response[0].id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"story_id\": \"{{storyId}}\",\n  \"title\": \"Main Board\",\n  \"description\": \"The main storyline\",\n  \"sort_order\": 0\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/boards",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "boards"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Boards by Story",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/boards?story_id=eq.{{storyId}}&order=sort_order.asc",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "boards"
+                            ],
+                            "query": [
+                                {
+                                    "key": "story_id",
+                                    "value": "eq.{{storyId}}"
+                                },
+                                {
+                                    "key": "order",
+                                    "value": "sort_order.asc"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Board by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/vnd.pgrst.object+json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/boards?id=eq.{{boardId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "boards"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{boardId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Board",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Board Title\",\n  \"viewport_x\": 100,\n  \"viewport_y\": 50,\n  \"viewport_zoom\": 0.8\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/boards?id=eq.{{boardId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "boards"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{boardId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Board",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/boards?id=eq.{{boardId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "boards"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{boardId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Notes",
+            "item": [
+                {
+                    "name": "Create Note",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response[0]) {",
+                                    "    pm.collectionVariables.set('noteId', response[0].id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"board_id\": \"{{boardId}}\",\n  \"type\": \"normal\",\n  \"title\": \"Chapter 1\",\n  \"content\": {\n    \"type\": \"doc\",\n    \"content\": [\n      {\n        \"type\": \"paragraph\",\n        \"content\": [\n          { \"type\": \"text\", \"text\": \"You wake up in a dark forest...\" }\n        ]\n      }\n    ]\n  },\n  \"position_x\": 100,\n  \"position_y\": 100,\n  \"width\": 200,\n  \"height\": 150,\n  \"color\": \"#FFFFFF\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Second Note (for connection)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response[0]) {",
+                                    "    pm.collectionVariables.set('noteId2', response[0].id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"board_id\": \"{{boardId}}\",\n  \"type\": \"normal\",\n  \"title\": \"Chapter 2\",\n  \"content\": {\n    \"type\": \"doc\",\n    \"content\": [\n      {\n        \"type\": \"paragraph\",\n        \"content\": [\n          { \"type\": \"text\", \"text\": \"You find a path...\" }\n        ]\n      }\n    ]\n  },\n  \"position_x\": 400,\n  \"position_y\": 100,\n  \"width\": 200,\n  \"height\": 150,\n  \"color\": \"#E3F2FD\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Notes by Board",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes?board_id=eq.{{boardId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ],
+                            "query": [
+                                {
+                                    "key": "board_id",
+                                    "value": "eq.{{boardId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Note by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/vnd.pgrst.object+json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes?id=eq.{{noteId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{noteId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Note Position",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"position_x\": 150,\n  \"position_y\": 200\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes?id=eq.{{noteId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{noteId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Note Content",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Title\",\n  \"content\": {\n    \"type\": \"doc\",\n    \"content\": [\n      {\n        \"type\": \"paragraph\",\n        \"content\": [\n          { \"type\": \"text\", \"text\": \"Updated content...\" }\n        ]\n      }\n    ]\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes?id=eq.{{noteId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{noteId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Note Style",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"color\": \"#FFECB3\",\n  \"width\": 250,\n  \"height\": 180\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes?id=eq.{{noteId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{noteId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Note",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes?id=eq.{{noteId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{noteId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Connections",
+            "item": [
+                {
+                    "name": "Create Connection",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response[0]) {",
+                                    "    pm.collectionVariables.set('connectionId', response[0].id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"board_id\": \"{{boardId}}\",\n  \"source_note_id\": \"{{noteId}}\",\n  \"target_note_id\": \"{{noteId2}}\",\n  \"source_anchor\": \"right\",\n  \"target_anchor\": \"left\",\n  \"label\": \"Go to forest\",\n  \"color\": \"#333333\",\n  \"style\": \"solid\",\n  \"thickness\": 2,\n  \"arrow_type\": \"single\",\n  \"curvature\": \"curved\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/connections",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "connections"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Connections by Board",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/connections?board_id=eq.{{boardId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "connections"
+                            ],
+                            "query": [
+                                {
+                                    "key": "board_id",
+                                    "value": "eq.{{boardId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Connection",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"label\": \"Updated label\",\n  \"color\": \"#FF5722\",\n  \"style\": \"dashed\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/connections?id=eq.{{connectionId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "connections"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{connectionId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Connection",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/connections?id=eq.{{connectionId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "connections"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{connectionId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Components",
+            "item": [
+                {
+                    "name": "Create Component",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response[0]) {",
+                                    "    pm.collectionVariables.set('componentId', response[0].id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"story_id\": \"{{storyId}}\",\n  \"name\": \"health\",\n  \"type\": \"number\",\n  \"default_value\": 100,\n  \"current_value\": 100,\n  \"description\": \"Player health points\",\n  \"color_tag\": \"#4CAF50\",\n  \"sort_order\": 0\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/components",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "components"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Boolean Component",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"story_id\": \"{{storyId}}\",\n  \"name\": \"hasKey\",\n  \"type\": \"boolean\",\n  \"default_value\": false,\n  \"current_value\": false,\n  \"description\": \"Whether player has the key\",\n  \"color_tag\": \"#2196F3\",\n  \"sort_order\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/components",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "components"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create String Component",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"story_id\": \"{{storyId}}\",\n  \"name\": \"playerName\",\n  \"type\": \"string\",\n  \"default_value\": \"Hero\",\n  \"current_value\": \"Hero\",\n  \"description\": \"The player's chosen name\",\n  \"color_tag\": \"#9C27B0\",\n  \"sort_order\": 2\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/components",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "components"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Components by Story",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/components?story_id=eq.{{storyId}}&order=sort_order.asc",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "components"
+                            ],
+                            "query": [
+                                {
+                                    "key": "story_id",
+                                    "value": "eq.{{storyId}}"
+                                },
+                                {
+                                    "key": "order",
+                                    "value": "sort_order.asc"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Component Value",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"current_value\": 80,\n  \"description\": \"Updated description\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/components?id=eq.{{componentId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "components"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{componentId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Component",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/components?id=eq.{{componentId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "components"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{componentId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Containers",
+            "item": [
+                {
+                    "name": "Create Container",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response[0]) {",
+                                    "    pm.collectionVariables.set('containerId', response[0].id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"story_id\": \"{{storyId}}\",\n  \"board_id\": \"{{boardId}}\",\n  \"name\": \"Combat System\",\n  \"description\": \"All combat-related scenes\",\n  \"position_x\": 500,\n  \"position_y\": 300,\n  \"width\": 400,\n  \"height\": 300,\n  \"color\": \"#FFF3E0\",\n  \"background_opacity\": 0.8,\n  \"is_collapsed\": false,\n  \"is_locked\": false\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/containers",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "containers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Containers by Board",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/containers?board_id=eq.{{boardId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "containers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "board_id",
+                                    "value": "eq.{{boardId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Container",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Updated Container\",\n  \"is_collapsed\": true,\n  \"mini_board_data\": {\n    \"notes\": [],\n    \"connections\": [],\n    \"viewport\": { \"x\": 0, \"y\": 0, \"zoom\": 1 }\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/containers?id=eq.{{containerId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "containers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{containerId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Container",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/containers?id=eq.{{containerId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "containers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "eq.{{containerId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Storage",
+            "item": [
+                {
+                    "name": "Upload Avatar",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "image/png"
+                            }
+                        ],
+                        "body": {
+                            "mode": "file",
+                            "file": {
+                                "src": ""
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/storage/v1/object/avatars/{{userId}}/avatar.png",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "storage",
+                                "v1",
+                                "object",
+                                "avatars",
+                                "{{userId}}",
+                                "avatar.png"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Avatar Public URL",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/storage/v1/object/public/avatars/{{userId}}/avatar.png",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "storage",
+                                "v1",
+                                "object",
+                                "public",
+                                "avatars",
+                                "{{userId}}",
+                                "avatar.png"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Avatar",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/storage/v1/object/avatars/{{userId}}/avatar.png",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "storage",
+                                "v1",
+                                "object",
+                                "avatars",
+                                "{{userId}}",
+                                "avatar.png"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List Bucket Files",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"prefix\": \"{{userId}}/\",\n  \"limit\": 100,\n  \"offset\": 0\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/storage/v1/object/list/avatars",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "storage",
+                                "v1",
+                                "object",
+                                "list",
+                                "avatars"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
