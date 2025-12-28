@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { Handle, Position, type NodeProps, NodeResizer } from 'reactflow';
 import { GripVertical, MoreHorizontal, Trash2, Lock, Unlock, Palette } from 'lucide-react';
 import type { Note } from '@/types/database';
@@ -50,6 +50,11 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
     setContent((note.content?.blocks?.[0]?.content as string) || '');
   }, [note.title, note.content]);
 
+  // Touch double-tap detection refs
+  const lastTitleTapRef = useRef<number>(0);
+  const lastContentTapRef = useRef<number>(0);
+  const DOUBLE_TAP_DELAY = 350; // ms - slightly longer for better detection
+
   const handleTitleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -60,11 +65,65 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
     [note.is_locked]
   );
 
+  const handleTitleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Don't stop propagation on start - just track
+    const now = Date.now();
+    if (now - lastTitleTapRef.current < DOUBLE_TAP_DELAY) {
+      // Prevent default to stop potential zoom/selection
+      e.preventDefault();
+    }
+  }, []);
+
+  const handleTitleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const now = Date.now();
+      if (now - lastTitleTapRef.current < DOUBLE_TAP_DELAY) {
+        // Double tap detected
+        e.preventDefault();
+        e.stopPropagation();
+        if (!note.is_locked) {
+          setIsEditingTitle(true);
+        }
+        lastTitleTapRef.current = 0;
+      } else {
+        lastTitleTapRef.current = now;
+      }
+    },
+    [note.is_locked]
+  );
+
   const handleContentDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!note.is_locked) {
         setIsEditingContent(true);
+      }
+    },
+    [note.is_locked]
+  );
+
+  const handleContentTouchStart = useCallback((e: React.TouchEvent) => {
+    // Don't stop propagation on start - just track
+    const now = Date.now();
+    if (now - lastContentTapRef.current < DOUBLE_TAP_DELAY) {
+      // Prevent default to stop potential zoom/selection
+      e.preventDefault();
+    }
+  }, []);
+
+  const handleContentTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const now = Date.now();
+      if (now - lastContentTapRef.current < DOUBLE_TAP_DELAY) {
+        // Double tap detected
+        e.preventDefault();
+        e.stopPropagation();
+        if (!note.is_locked) {
+          setIsEditingContent(true);
+        }
+        lastContentTapRef.current = 0;
+      } else {
+        lastContentTapRef.current = now;
       }
     },
     [note.is_locked]
@@ -178,53 +237,62 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
         onResize={handleResize}
       />
 
-      {/* Connection handles - all handles work as both source and target */}
-      <Handle
-        type="source"
-        position={Position.Top}
-        id="top"
-        className="!h-3 !w-3 !border-2 !border-background !bg-primary"
-      />
+      {/* Target handles for receiving connections (rendered first = behind) */}
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className="!h-3 !w-3 !border-2 !border-background !bg-primary"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
+        isConnectable={true}
         className="!h-3 !w-3 !border-2 !border-background !bg-primary"
       />
       <Handle
         type="target"
         position={Position.Bottom}
         id="bottom"
-        className="!h-3 !w-3 !border-2 !border-background !bg-primary"
-      />
-      <Handle
-        type="source"
-        position={Position.Left}
-        id="left"
+        isConnectable={true}
         className="!h-3 !w-3 !border-2 !border-background !bg-primary"
       />
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        className="!h-3 !w-3 !border-2 !border-background !bg-primary"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right"
+        isConnectable={true}
         className="!h-3 !w-3 !border-2 !border-background !bg-primary"
       />
       <Handle
         type="target"
         position={Position.Right}
         id="right"
+        isConnectable={true}
+        className="!h-3 !w-3 !border-2 !border-background !bg-primary"
+      />
+      {/* Source handles for starting connections (rendered last = on top) */}
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="top-source"
+        isConnectable={true}
+        className="!h-3 !w-3 !border-2 !border-background !bg-primary"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom-source"
+        isConnectable={true}
+        className="!h-3 !w-3 !border-2 !border-background !bg-primary"
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="left-source"
+        isConnectable={true}
+        className="!h-3 !w-3 !border-2 !border-background !bg-primary"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right-source"
+        isConnectable={true}
         className="!h-3 !w-3 !border-2 !border-background !bg-primary"
       />
 
@@ -255,8 +323,10 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
             />
           ) : (
             <span
-              className="flex-1 cursor-text truncate text-sm font-medium text-gray-900"
+              className="nodrag flex-1 cursor-text truncate text-sm font-medium text-gray-900"
               onDoubleClick={handleTitleDoubleClick}
+              onTouchStart={handleTitleTouchStart}
+              onTouchEnd={handleTitleTouchEnd}
             >
               {note.title || 'Untitled'}
             </span>
@@ -340,7 +410,12 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
         </div>
 
         {/* Content */}
-        <div className="group p-3" onDoubleClick={handleContentDoubleClick}>
+        <div
+          className="nodrag group p-3"
+          onDoubleClick={handleContentDoubleClick}
+          onTouchStart={handleContentTouchStart}
+          onTouchEnd={handleContentTouchEnd}
+        >
           {isEditingContent ? (
             <textarea
               value={content}
@@ -357,7 +432,7 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
               {content ? (
                 renderContentWithReferences(content)
               ) : (
-                <span className="italic text-gray-500">Double-click to edit...</span>
+                <span className="italic text-gray-500">Double-tap to edit...</span>
               )}
             </div>
           )}

@@ -253,15 +253,15 @@ export default function StoriesPage() {
   const filteredStories = getFilteredStories();
 
   return (
-    <div className="container px-6 py-8 md:px-8 lg:px-12">
+    <div className="w-full px-4 py-6 transition-all duration-300 ease-in-out sm:px-6 sm:py-8 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
       {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-3 transition-all duration-300 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="flex items-center gap-2 text-3xl font-bold">
-            <BookOpen className="h-8 w-8 text-primary" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold transition-all duration-300 sm:text-3xl">
+            <BookOpen className="h-6 w-6 text-primary transition-all duration-300 sm:h-8 sm:w-8" />
             My Stories
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-1.5 text-sm text-muted-foreground transition-all duration-300 sm:mt-2 sm:text-base">
             Create and manage your interactive narratives
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function StoriesPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-col gap-4 rounded-lg border bg-card p-4 sm:flex-row sm:items-center">
+      <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 transition-all duration-300 sm:mb-6 sm:flex-row sm:items-center sm:gap-4 sm:p-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -283,7 +283,7 @@ export default function StoriesPage() {
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2 transition-all duration-200">
                 <Filter className="h-4 w-4" />
                 <span className="hidden sm:inline">Filter</span>
               </Button>
@@ -370,7 +370,7 @@ export default function StoriesPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 transition-all duration-300 ease-in-out sm:grid-cols-2 sm:gap-5 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {filteredStories.map((story) => (
             <StoryCard
               key={story.id}

@@ -1,11 +1,12 @@
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
   getStraightPath,
+  getSmoothStepPath,
   type EdgeProps,
 } from 'reactflow';
 import { Trash2, ArrowRight, ArrowLeftRight, Circle, Repeat2 } from 'lucide-react';
@@ -18,6 +19,7 @@ interface ConnectionEdgeData {
   connection: Connection;
   onUpdate: (id: string, updates: Partial<Connection>) => void;
   onDelete: (id: string) => void;
+  showGrid?: boolean;
 }
 
 const ConnectionEdge = memo(
@@ -41,7 +43,11 @@ const ConnectionEdge = memo(
       setLabelText(connection?.label || '');
     }, [connection?.label]);
 
-    // Calculate path based on curvature type
+    // Touch double-tap detection ref
+    const lastTapRef = useRef<number>(0);
+    const DOUBLE_TAP_DELAY = 300; // ms
+
+    // Calculate path based on grid state (elbowed when grid on, curved when off)
     const pathParams = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition };
 
     let edgePath: string;
@@ -50,7 +56,11 @@ const ConnectionEdge = memo(
 
     if (connection?.curvature === 'straight') {
       [edgePath, labelX, labelY] = getStraightPath(pathParams);
+    } else if (data?.showGrid) {
+      // Elbowed/orthogonal path when grid is shown
+      [edgePath, labelX, labelY] = getSmoothStepPath({ ...pathParams, borderRadius: 8 });
     } else {
+      // Curved path when grid is hidden
       [edgePath, labelX, labelY] = getBezierPath(pathParams);
     }
 
@@ -81,6 +91,18 @@ const ConnectionEdge = memo(
       setIsEditorOpen(true);
     }, []);
 
+    const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+        // Double tap detected
+        setIsEditorOpen(true);
+        lastTapRef.current = 0;
+      } else {
+        lastTapRef.current = now;
+      }
+    }, []);
+
     const handleLabelChange = useCallback((value: string) => {
       setLabelText(value);
     }, []);
@@ -95,6 +117,24 @@ const ConnectionEdge = memo(
       (style: LineStyle) => {
         if (data?.onUpdate && connection) {
           data.onUpdate(connection.id, { style });
+        }
+      },
+      [data, connection]
+    );
+
+    const handleColorChange = useCallback(
+      (color: string) => {
+        if (data?.onUpdate && connection) {
+          data.onUpdate(connection.id, { color });
+        }
+      },
+      [data, connection]
+    );
+
+    const handleThicknessChange = useCallback(
+      (thickness: number) => {
+        if (data?.onUpdate && connection) {
+          data.onUpdate(connection.id, { thickness });
         }
       },
       [data, connection]
@@ -151,7 +191,7 @@ const ConnectionEdge = memo(
             id={`arrow-end-${id}`}
             markerWidth="10"
             markerHeight="10"
-            refX="9"
+            refX="8"
             refY="5"
             orient="auto"
             markerUnits="strokeWidth"
@@ -162,12 +202,12 @@ const ConnectionEdge = memo(
             id={`arrow-start-${id}`}
             markerWidth="10"
             markerHeight="10"
-            refX="1"
+            refX="2"
             refY="5"
-            orient="auto"
+            orient="auto-start-reverse"
             markerUnits="strokeWidth"
           >
-            <path d="M10,0 L10,10 L0,5 z" fill={strokeColor} />
+            <path d="M0,0 L0,10 L10,5 z" fill={strokeColor} />
           </marker>
         </defs>
 
@@ -291,6 +331,62 @@ const ConnectionEdge = memo(
                   </div>
                 </div>
 
+                {/* Color */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Color
+                  </label>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { color: '#6b7280', label: 'Gray' },
+                      { color: '#ef4444', label: 'Red' },
+                      { color: '#f97316', label: 'Orange' },
+                      { color: '#eab308', label: 'Yellow' },
+                      { color: '#22c55e', label: 'Green' },
+                      { color: '#3b82f6', label: 'Blue' },
+                      { color: '#8b5cf6', label: 'Purple' },
+                      { color: '#ec4899', label: 'Pink' },
+                    ].map(({ color, label }) => (
+                      <button
+                        key={color}
+                        className={cn(
+                          'h-6 w-6 rounded-full border-2 transition-transform hover:scale-110',
+                          connection?.color === color
+                            ? 'border-foreground ring-2 ring-foreground/20'
+                            : 'border-transparent'
+                        )}
+                        style={{ backgroundColor: color }}
+                        onClick={() => handleColorChange(color)}
+                        title={label}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Thickness */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Thickness
+                  </label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((thickness) => (
+                      <Button
+                        key={thickness}
+                        variant={connection?.thickness === thickness ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => handleThicknessChange(thickness)}
+                        title={`${thickness}px`}
+                      >
+                        <div
+                          className="rounded bg-current"
+                          style={{ width: 16, height: thickness }}
+                        />
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Actions */}
                 <div className="flex items-center justify-between border-t pt-2">
                   <Button
@@ -322,10 +418,11 @@ const ConnectionEdge = memo(
                 !connection?.label && 'opacity-0 hover:opacity-100'
               )}
               onDoubleClick={handleDoubleClick}
+              onTouchEnd={handleTouchEnd}
             >
               <span className="text-xs text-foreground">
                 {connection?.label || (
-                  <span className="italic text-muted-foreground">Double-click to edit...</span>
+                  <span className="italic text-muted-foreground">Double-tap to edit...</span>
                 )}
               </span>
             </div>

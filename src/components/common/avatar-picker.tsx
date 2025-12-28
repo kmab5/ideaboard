@@ -106,11 +106,11 @@ export function AvatarPicker({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid h-10 w-full grid-cols-2">
-        <TabsTrigger value="generate" className="text-sm">
+      <TabsList className="grid h-10 w-full grid-cols-2 transition-all duration-300">
+        <TabsTrigger value="generate" className="text-sm transition-all duration-200">
           Generate
         </TabsTrigger>
-        <TabsTrigger value="upload" className="text-sm">
+        <TabsTrigger value="upload" className="text-sm transition-all duration-200">
           Upload
         </TabsTrigger>
       </TabsList>

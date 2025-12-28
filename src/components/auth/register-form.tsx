@@ -112,13 +112,20 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Create an account</h1>
-        <p className="mt-2 text-muted-foreground">Start organizing your ideas visually</p>
+    <div className="w-full max-w-md space-y-6 px-4 transition-all duration-300 ease-in-out sm:space-y-8 sm:px-0">
+      <div className="text-center transition-all duration-200">
+        <h1 className="text-2xl font-bold tracking-tight transition-all duration-200 sm:text-3xl">
+          Create an account
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground transition-all duration-200 sm:text-base">
+          Start organizing your ideas visually
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4 transition-all duration-200 sm:space-y-6"
+      >
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="displayName">Display Name</Label>

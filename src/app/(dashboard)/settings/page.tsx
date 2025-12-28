@@ -241,15 +241,19 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container max-w-5xl px-8 py-8 md:px-12 lg:px-16">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="mt-2 text-muted-foreground">Manage your account and preferences</p>
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 transition-all duration-300 ease-in-out sm:px-6 sm:py-8 md:px-8 lg:px-12">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl font-bold tracking-tight transition-all duration-300 sm:text-3xl">
+          Settings
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground transition-all duration-300 sm:mt-2 sm:text-base">
+          Manage your account and preferences
+        </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr,320px]">
+      <div className="grid gap-4 transition-all duration-300 ease-in-out sm:gap-6 lg:grid-cols-[1fr,minmax(280px,360px)]">
         {/* Left Column - Profile and Account */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Profile Section */}
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/30">

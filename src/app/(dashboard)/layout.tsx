@@ -2,9 +2,9 @@ import { Navbar } from '@/components/common';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full bg-background transition-all duration-300">
       <Navbar />
-      <main>{children}</main>
+      <main className="w-full transition-all duration-300 ease-in-out">{children}</main>
     </div>
   );
 }

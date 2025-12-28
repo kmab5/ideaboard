@@ -217,10 +217,10 @@ export function ComponentPanel({ storyId, components, onClose }: ComponentPanelP
   const filteredComponents = getFilteredComponents();
 
   return (
-    <div className="absolute bottom-4 right-4 top-16 z-20 flex w-80 flex-col rounded-lg border bg-background shadow-lg">
+    <div className="fixed inset-0 z-20 flex flex-col bg-background transition-all duration-300 sm:absolute sm:inset-auto sm:bottom-4 sm:right-4 sm:top-16 sm:w-80 sm:rounded-lg sm:border sm:shadow-lg">
       {/* Header */}
       <div className="flex items-center justify-between border-b p-4">
-        <h2 className="font-semibold">Components</h2>
+        <h2 className="text-lg font-semibold sm:text-base">Components</h2>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"

@@ -89,18 +89,20 @@ function CanvasInner({
 
   // Convert connections to React Flow edges
   const connectionsToEdges = useCallback(
-    (connectionsList: Connection[]): Edge[] =>
+    (connectionsList: Connection[], gridVisible: boolean): Edge[] =>
       connectionsList.map((connection) => ({
         id: connection.id,
         source: connection.source_note_id,
         target: connection.target_note_id,
-        sourceHandle: connection.source_anchor,
+        // Add -source suffix since source handles are named "top-source", "bottom-source", etc.
+        sourceHandle: `${connection.source_anchor}-source`,
         targetHandle: connection.target_anchor,
         type: 'connectionEdge',
         data: {
           connection,
           onUpdate: onUpdateConnection,
           onDelete: onDeleteConnection,
+          showGrid: gridVisible,
         },
       })),
     [onUpdateConnection, onDeleteConnection]
@@ -114,7 +116,6 @@ function CanvasInner({
 
   // Manual save handler - saves all current state
   const handleManualSave = useCallback(() => {
-    console.log('[DEBUG] Manual save triggered');
     // Save viewport
     onUpdateViewport(
       reactFlowInstance.getViewport().x,
@@ -123,9 +124,6 @@ function CanvasInner({
     );
     // Force save all note positions from current nodes
     nodes.forEach((node) => {
-      console.log(
-        `[DEBUG] Saving note ${node.id} at position x=${node.position.x}, y=${node.position.y}`
-      );
       onUpdateNote(node.id, {
         position_x: node.position.x,
         position_y: node.position.y,
@@ -153,17 +151,11 @@ function CanvasInner({
   useEffect(() => {
     // Only initialize once we have data (notes array exists, even if empty)
     if (!isInitializedRef.current) {
-      console.log('[DEBUG] Initializing notes on page load:');
-      notes.forEach((note) => {
-        console.log(
-          `  Note "${note.title || note.id}": position_x=${note.position_x}, position_y=${note.position_y}`
-        );
-      });
       setNodes(notesToNodes(notes));
-      setEdges(connectionsToEdges(connections));
+      setEdges(connectionsToEdges(connections, showGrid));
       isInitializedRef.current = true;
     }
-  }, [notes, connections, notesToNodes, connectionsToEdges, setNodes, setEdges]);
+  }, [notes, connections, notesToNodes, connectionsToEdges, setNodes, setEdges, showGrid]);
 
   // Handle note additions only (not updates to existing notes)
   useEffect(() => {
@@ -211,7 +203,7 @@ function CanvasInner({
       const newConnections = connections.filter((conn) => !currentIds.has(conn.id));
 
       if (newConnections.length > 0) {
-        return [...currentEdges, ...connectionsToEdges(newConnections)];
+        return [...currentEdges, ...connectionsToEdges(newConnections, showGrid)];
       }
 
       // Update data and source/target for existing edges
@@ -222,12 +214,13 @@ function CanvasInner({
             ...edge,
             source: connectionData.source_note_id,
             target: connectionData.target_note_id,
-            sourceHandle: connectionData.source_anchor,
+            sourceHandle: `${connectionData.source_anchor}-source`,
             targetHandle: connectionData.target_anchor,
             data: {
               connection: connectionData,
               onUpdate: onUpdateConnection,
               onDelete: onDeleteConnection,
+              showGrid,
             },
           };
         }
@@ -240,7 +233,7 @@ function CanvasInner({
       const connIds = new Set(connections.map((c) => c.id));
       return currentEdges.filter((edge) => connIds.has(edge.id));
     });
-  }, [connections, connectionsToEdges, setEdges, onUpdateConnection, onDeleteConnection]);
+  }, [connections, connectionsToEdges, setEdges, onUpdateConnection, onDeleteConnection, showGrid]);
 
   // Handle node changes (position updates during drag)
   const handleNodesChange = useCallback(
@@ -253,9 +246,6 @@ function CanvasInner({
   // Handle node drag stop - save position when drag ends
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
-      console.log(
-        `[DEBUG] Note position saved - id: ${node.id}, position: x=${node.position.x}, y=${node.position.y}`
-      );
       onUpdateNote(node.id, {
         position_x: node.position.x,
         position_y: node.position.y,
@@ -269,14 +259,31 @@ function CanvasInner({
     (params: FlowConnection) => {
       if (!params.source || !params.target) return;
 
+      // Strip the -source suffix from sourceHandle for database storage
+      const sourceAnchor = params.sourceHandle?.replace('-source', '') || 'bottom';
+
+      // Random color for new connections
+      const connectionColors = [
+        '#6b7280',
+        '#ef4444',
+        '#f97316',
+        '#eab308',
+        '#22c55e',
+        '#3b82f6',
+        '#8b5cf6',
+        '#ec4899',
+      ];
+      const randomConnectionColor =
+        connectionColors[Math.floor(Math.random() * connectionColors.length)];
+
       const newConnection: Partial<Connection> = {
         id: uuidv4(),
         board_id: board.id,
         source_note_id: params.source,
         target_note_id: params.target,
-        source_anchor: (params.sourceHandle as Connection['source_anchor']) || 'bottom',
+        source_anchor: sourceAnchor as Connection['source_anchor'],
         target_anchor: (params.targetHandle as Connection['target_anchor']) || 'top',
-        color: '#6b7280', // Gray color that works in both light and dark mode
+        color: randomConnectionColor,
         style: 'solid',
         thickness: 2,
         arrow_type: 'single',
@@ -292,6 +299,21 @@ function CanvasInner({
   const handleAddNote = useCallback(
     (position?: { x: number; y: number }) => {
       const pos = position || { x: 100 + Math.random() * 200, y: 100 + Math.random() * 200 };
+
+      // Random color for new notes
+      const noteColors = [
+        '#FFFFFF',
+        '#FFF9C4',
+        '#FFCCBC',
+        '#F8BBD9',
+        '#E1BEE7',
+        '#C5CAE9',
+        '#BBDEFB',
+        '#B2DFDB',
+        '#C8E6C9',
+      ];
+      const randomNoteColor = noteColors[Math.floor(Math.random() * noteColors.length)];
+
       const newNote: Partial<Note> = {
         id: uuidv4(),
         board_id: board.id,
@@ -302,7 +324,7 @@ function CanvasInner({
         position_y: pos.y,
         width: 200,
         height: 150,
-        color: '#FFFFFF',
+        color: randomNoteColor,
         is_collapsed: false,
         is_locked: false,
         z_index: nodes.length,
@@ -383,6 +405,7 @@ function CanvasInner({
         onPaneClick={undefined}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        connectOnClick={true}
         defaultViewport={{
           x: board.viewport_x,
           y: board.viewport_y,
@@ -407,7 +430,7 @@ function CanvasInner({
           nodeStrokeWidth={3}
           zoomable
           pannable
-          className="rounded-lg !border !bg-background"
+          className="hidden rounded-lg !border !bg-background sm:block"
         />
         <Controls className="rounded-lg !border !bg-background" showInteractive={false} />
 
