@@ -98,8 +98,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <p className="mt-6 text-center text-lg text-white/70">Organize your ideas visually</p>
         </div>
 
-        <div className="relative z-10 text-sm text-white/50">
-          © 2025 IdeaBoard. All rights reserved.
+        <div className="relative z-10 flex flex-col items-start gap-2 text-sm text-white/50">
+          <span>© 2025 IdeaBoard. All rights reserved.</span>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="transition-colors hover:text-white/70">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="transition-colors hover:text-white/70">
+              Terms of Service
+            </Link>
+          </div>
         </div>
       </div>
 

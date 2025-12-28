@@ -219,9 +219,19 @@ export default function Home() {
               <AppIcon className="h-8 w-8" />
               <span className="font-semibold">IdeaBoard</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} IdeaBoard. All rights reserved.
-            </p>
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+              <div className="flex gap-4 text-sm text-muted-foreground">
+                <Link href="/privacy" className="transition-colors hover:text-foreground">
+                  Privacy Policy
+                </Link>
+                <Link href="/terms" className="transition-colors hover:text-foreground">
+                  Terms of Service
+                </Link>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} IdeaBoard. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
