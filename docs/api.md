@@ -560,12 +560,19 @@ Authorization: Bearer <access_token>
     "z_index": 0,
     "condition_data": null,
     "technical_data": null,
+    "drawing_data": null,
     "tags": [],
     "created_at": "2025-12-28T10:00:00Z",
     "updated_at": "2025-12-28T10:00:00Z"
   }
 ]
 ```
+
+**Note Types:**
+- `normal` - Standard Markdown text note
+- `drawing` - Freehand drawing (data stored in `drawing_data`)
+- `conditional` - Branching logic note (data in `condition_data`)
+- `technical` - Component modification note (data in `technical_data`)
 
 ### Create Note
 
@@ -590,6 +597,45 @@ Prefer: return=representation
   "width": 200,
   "height": 150,
   "color": "#FFF9C4"
+}
+```
+
+### Create Drawing Note
+
+```http
+POST /rest/v1/notes
+Authorization: Bearer <access_token>
+Content-Type: application/json
+Prefer: return=representation
+```
+
+**Request Body:**
+```json
+{
+  "board_id": "board-uuid",
+  "type": "drawing",
+  "title": "Sketch",
+  "position_x": 500,
+  "position_y": 200,
+  "width": 300,
+  "height": 200,
+  "drawing_data": {
+    "strokes": [
+      {
+        "id": "stroke-1",
+        "points": [
+          { "x": 10, "y": 20, "pressure": 0.5 },
+          { "x": 15, "y": 25, "pressure": 0.6 }
+        ],
+        "color": "#000000",
+        "width": 2,
+        "opacity": 1.0,
+        "tool": "pen"
+      }
+    ],
+    "backgroundColor": "transparent",
+    "bounds": { "minX": 10, "minY": 20, "maxX": 100, "maxY": 100 }
+  }
 }
 ```
 

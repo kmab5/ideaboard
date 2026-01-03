@@ -71,6 +71,11 @@
             "key": "containerId",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "drawingId",
+            "value": "",
+            "type": "string"
         }
     ],
     "auth": {
@@ -1130,6 +1135,64 @@
                         "body": {
                             "mode": "raw",
                             "raw": "{\n  \"board_id\": \"{{boardId}}\",\n  \"type\": \"normal\",\n  \"title\": \"Chapter 2\",\n  \"content\": {\n    \"type\": \"doc\",\n    \"content\": [\n      {\n        \"type\": \"paragraph\",\n        \"content\": [\n          { \"type\": \"text\", \"text\": \"You find a path...\" }\n        ]\n      }\n    ]\n  },\n  \"position_x\": 400,\n  \"position_y\": 100,\n  \"width\": 200,\n  \"height\": 150,\n  \"color\": \"#E3F2FD\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/rest/v1/notes",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "rest",
+                                "v1",
+                                "notes"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Drawing Note",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response[0]) {",
+                                    "    pm.collectionVariables.set('drawingId', response[0].id);",
+                                    "}",
+                                    "",
+                                    "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                                    "pm.test('Note type is drawing', () => {",
+                                    "    pm.expect(response[0].type).to.eql('drawing');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "apikey",
+                                "value": "{{anonKey}}"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Prefer",
+                                "value": "return=representation"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"board_id\": \"{{boardId}}\",\n  \"type\": \"drawing\",\n  \"title\": \"Sketch\",\n  \"position_x\": 250,\n  \"position_y\": 300,\n  \"width\": 300,\n  \"height\": 200,\n  \"drawing_data\": {\n    \"strokes\": [\n      {\n        \"id\": \"stroke-1\",\n        \"points\": [\n          { \"x\": 10, \"y\": 20, \"pressure\": 0.5 },\n          { \"x\": 50, \"y\": 60, \"pressure\": 0.6 },\n          { \"x\": 100, \"y\": 40, \"pressure\": 0.5 }\n        ],\n        \"color\": \"#000000\",\n        \"width\": 2,\n        \"opacity\": 1.0,\n        \"tool\": \"pen\"\n      }\n    ],\n    \"backgroundColor\": \"transparent\",\n    \"bounds\": { \"minX\": 10, \"minY\": 20, \"maxX\": 100, \"maxY\": 60 }\n  }\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/rest/v1/notes",

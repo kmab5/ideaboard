@@ -100,11 +100,12 @@
                                       │              │           JSONB │  │           JSONB │
                                       │              │ z_index  INTEGER│  │ technical_data  │
                                       │              │ created_at      │  │           JSONB │
-                                      │              │ updated_at      │  │ tags     TEXT[] │
-                                      │              │                 │  │ created_at      │
-                                      │              │ UNIQUE(board_id,│  │ updated_at      │
-                                      │              │        name)    │  └─────────────────┘
-                                      │              └─────────────────┘          │
+                                      │              │ updated_at      │  │ drawing_data    │
+                                      │              │                 │  │           JSONB │
+                                      │              │ UNIQUE(board_id,│  │ tags     TEXT[] │
+                                      │              │        name)    │  │ created_at      │
+                                      │              └─────────────────┘  │ updated_at      │
+                                      │                                   └─────────────────┘
                                       │                                           │
                                       │                              ┌────────────┴────────────┐
                                       │                              │                         │
@@ -229,7 +230,7 @@
 
 ### note_type
 ```sql
-'normal' | 'conditional' | 'technical'
+'normal' | 'drawing' | 'conditional' | 'technical'
 ```
 
 ### anchor_position
@@ -408,6 +409,33 @@ idx_notes_tags                   ON notes USING GIN(tags)
       "value": true
     }
   ]
+}
+```
+
+### notes.drawing_data (for drawing notes)
+```json
+{
+  "strokes": [
+    {
+      "id": "stroke-uuid",
+      "points": [
+        { "x": 10, "y": 20, "pressure": 0.5 },
+        { "x": 15, "y": 25, "pressure": 0.6 },
+        { "x": 20, "y": 30, "pressure": 0.5 }
+      ],
+      "color": "#000000",
+      "width": 2,
+      "opacity": 1.0,
+      "tool": "pen"
+    }
+  ],
+  "backgroundColor": "transparent",
+  "bounds": {
+    "minX": 10,
+    "minY": 20,
+    "maxX": 100,
+    "maxY": 150
+  }
 }
 ```
 

@@ -13,13 +13,16 @@
 The MVP focuses on delivering the essential whiteboard experience with basic user management:
 
 | Feature | Priority | Description |
-|---------|----------|-------------|
+| --------- | ---------- | ------------- |
 | User Authentication | P0 | Email/password signup & login, Google OAuth |
 | User Profile | P0 | Display name, DiceBear avatar |
 | Story Management | P0 | Create, rename, delete stories |
 | Single Board | P0 | One board per story (multi-board in v1.1) |
-| Normal Notes | P0 | Create, edit, move, resize, delete notes |
-| Connections | P0 | Directional arrows between notes |
+| Normal Notes | P0 | Create, edit, move, resize, delete notes (Markdown) |
+| Markdown Rendering | P0 | Bold, italic, lists, headings, task lists, links, tables |
+| Drawing Mode | P0 | Freehand drawing as connectable node |
+| Image Attachments | P0 | Upload images into notes (block element) |
+| Connections | P0 | Directional arrows between notes/drawings |
 | Canvas Navigation | P0 | Pan, zoom, fit-to-screen |
 | Auto-save | P0 | Save changes automatically |
 | Components | P1 | Basic variables (number, string, boolean) |
@@ -29,7 +32,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 ### 1.2 Deferred to Post-MVP
 
 | Feature | Target Version |
-|---------|----------------|
+| --------- | ---------------- |
 | Conditional Notes | v1.1 |
 | Technical Notes | v1.1 |
 | Containers | v1.1 |
@@ -48,7 +51,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 ### 2.1 Frontend (Deployed on Vercel)
 
 | Technology | Purpose | Version |
-|------------|---------|---------|
+| ------------ | --------- | --------- |
 | **Next.js 14** | React framework with App Router | ^14.0.0 |
 | **TypeScript** | Type safety | ^5.0.0 |
 | **React 18** | UI library | ^18.2.0 |
@@ -62,21 +65,24 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | **Zod** | Schema validation | ^3.22.0 |
 | **Lucide React** | Icons | ^0.300.0 |
 | **DiceBear** | Avatar generation | ^7.0.0 |
+| **react-markdown** | Markdown rendering | ^9.0.0 |
+| **remark-gfm** | GitHub Flavored Markdown (tables, task lists) | ^4.0.0 |
+| **tldraw** | Drawing/sketching library | ^2.0.0 |
 
 ### 2.2 Backend (Supabase)
 
 | Service | Purpose |
-|---------|---------|
+| --------- | --------- |
 | **Supabase Auth** | Authentication (email/password, OAuth) |
 | **Supabase Database** | PostgreSQL database |
-| **Supabase Storage** | File storage (avatars, thumbnails) |
+| **Supabase Storage** | File storage (avatars, thumbnails, attachments) |
 | **Supabase Realtime** | Real-time subscriptions (future) |
 | **Row Level Security** | Data access control |
 
 ### 2.3 Development Tools
 
 | Tool | Purpose |
-|------|---------|
+| ------ | --------- |
 | **pnpm** | Package manager |
 | **ESLint** | Linting |
 | **Prettier** | Code formatting |
@@ -89,7 +95,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 ### 2.4 Infrastructure
 
 | Service | Purpose |
-|---------|---------|
+| --------- | --------- |
 | **Vercel** | Frontend hosting & deployment |
 | **Supabase** | Backend (Free tier) |
 | **GitHub** | Version control |
@@ -217,7 +223,7 @@ NEXT_PUBLIC_ENABLE_SENTRY=false
 
 ### 3.6 Project Structure
 
-```
+```bash
 ideaboard/
 ├── app/                      # Next.js App Router
 │   ├── (auth)/              # Auth routes (login, register)
@@ -301,7 +307,7 @@ ideaboard/
 
 ### 4.1 Git Branching Strategy
 
-```
+```bash
 main           # Production-ready code
 ├── develop    # Integration branch
 │   ├── feature/auth-system
@@ -345,7 +351,8 @@ docs(api): update authentication endpoints
 
 ### Phase 1: Project Setup (Week 1)
 
-**1.1 Initialize Project**
+#### 1.1 Initialize Project
+
 - [ ] Create Next.js 14 project with TypeScript
 - [ ] Configure Tailwind CSS
 - [ ] Install and configure shadcn/ui
@@ -353,7 +360,8 @@ docs(api): update authentication endpoints
 - [ ] Configure Husky + lint-staged
 - [ ] Create folder structure
 
-**1.2 Supabase Setup**
+#### 1.2 Supabase Setup
+
 - [ ] Create Supabase project
 - [ ] Run database schema
 - [ ] Create storage buckets (avatars, thumbnails)
@@ -364,14 +372,16 @@ docs(api): update authentication endpoints
 
 ### Phase 2: Authentication (Week 2)
 
-**2.1 Auth Pages**
+#### 2.1 Auth Pages
+
 - [ ] Create `/login` page layout
 - [ ] Create `/register` page layout
 - [ ] Build LoginForm component
 - [ ] Build RegisterForm component
 - [ ] Add form validation (Zod + React Hook Form)
 
-**2.2 Auth Logic**
+#### 2.2 Auth Logic
+
 - [ ] Implement email/password signup
 - [ ] Implement email/password login
 - [ ] Implement logout
@@ -379,7 +389,8 @@ docs(api): update authentication endpoints
 - [ ] Configure OAuth callback route
 - [ ] Create auth middleware (protect routes)
 
-**2.3 Session Management**
+#### 2.3 Session Management
+
 - [ ] Set up auth state listener
 - [ ] Create useUser hook
 - [ ] Handle auth redirects
@@ -389,20 +400,23 @@ docs(api): update authentication endpoints
 
 ### Phase 3: User Profile (Week 3)
 
-**3.1 Profile Setup**
+#### 3.1 Profile Setup
+
 - [ ] Create profile on signup (trigger)
 - [ ] Build ProfileForm component
 - [ ] Implement display name update
 - [ ] Add bio field
 
-**3.2 Avatar System**
+#### 3.2 Avatar System
+
 - [ ] Integrate DiceBear library
 - [ ] Build AvatarPicker component
 - [ ] Style selector (8-10 styles)
 - [ ] Generate random seed
 - [ ] Save avatar preferences to DB
 
-**3.3 Custom Avatar Upload**
+#### 3.3 Custom Avatar Upload
+
 - [ ] Create avatar upload component
 - [ ] Implement file validation (size, type)
 - [ ] Upload to Supabase Storage
@@ -412,14 +426,16 @@ docs(api): update authentication endpoints
 
 ### Phase 4: Story Management (Week 4)
 
-**4.1 Story CRUD**
+#### 4.1 Story CRUD
+
 - [ ] Create story API/mutation
 - [ ] Implement createStory function
 - [ ] Implement updateStory function
 - [ ] Implement deleteStory function
 - [ ] Add confirmation dialog for delete
 
-**4.2 Dashboard UI**
+#### 4.2 Dashboard UI
+
 - [ ] Build `/stories` page
 - [ ] Create StoryCard component
 - [ ] Build StoryGrid/StoryList view
@@ -427,7 +443,8 @@ docs(api): update authentication endpoints
 - [ ] Implement story rename inline edit
 - [ ] Add empty state
 
-**4.3 Story Features**
+#### 4.3 Story Features
+
 - [ ] Add favorite toggle
 - [ ] Add archive functionality
 - [ ] Implement search/filter
@@ -437,21 +454,24 @@ docs(api): update authentication endpoints
 
 ### Phase 5: Canvas Foundation (Week 5)
 
-**5.1 React Flow Setup**
+#### 5.1 React Flow Setup
+
 - [ ] Install reactflow
 - [ ] Create Canvas wrapper component
 - [ ] Configure React Flow provider
 - [ ] Set up custom node types
 - [ ] Set up custom edge types
 
-**5.2 Canvas Controls**
+#### 5.2 Canvas Controls
+
 - [ ] Implement pan (drag background)
 - [ ] Implement zoom (scroll wheel)
 - [ ] Add zoom controls UI (+/- buttons)
 - [ ] Add fit-to-screen button
 - [ ] Save viewport position to DB
 
-**5.3 Canvas UI**
+#### 5.3 Canvas UI
+
 - [ ] Add grid background (dots/lines)
 - [ ] Create Minimap component
 - [ ] Build Toolbar component
@@ -461,20 +481,23 @@ docs(api): update authentication endpoints
 
 ### Phase 6: Notes - Basic (Week 6)
 
-**6.1 Note Node Component**
+#### 6.1 Note Node Component
+
 - [ ] Create NoteNode component
 - [ ] Style note card (rounded, shadow)
 - [ ] Add color variants
 - [ ] Implement selected state
 - [ ] Add drag handle
 
-**6.2 Note CRUD**
+#### 6.2 Note CRUD
+
 - [ ] Double-click to create note
 - [ ] Create note in database
 - [ ] Delete note (keyboard + context menu)
 - [ ] Handle optimistic updates
 
-**6.3 Note Positioning**
+#### 6.3 Note Positioning
+
 - [ ] Implement drag & drop
 - [ ] Snap to grid (optional)
 - [ ] Save position on drag end
@@ -484,25 +507,29 @@ docs(api): update authentication endpoints
 
 ### Phase 7: Notes - Editing (Week 7)
 
-**7.1 Rich Text Editor**
+#### 7.1 Rich Text Editor
+
 - [ ] Install TipTap or similar
 - [ ] Create NoteEditor component
 - [ ] Basic formatting (bold, italic, lists)
 - [ ] Handle focus/blur states
 
-**7.2 Note Content**
+#### 7.2 Note Content
+
 - [ ] Double-click note to edit
 - [ ] Save content on blur
 - [ ] Auto-save while typing (debounced)
 - [ ] Handle empty notes
 
-**7.3 Note Sizing**
+#### 7.3 Note Sizing
+
 - [ ] Add resize handles
 - [ ] Implement resize logic
 - [ ] Set min/max dimensions
 - [ ] Save size to database
 
-**7.4 Note Styling**
+#### 7.4 Note Styling
+
 - [ ] Build ColorPicker component
 - [ ] Apply color to note
 - [ ] Add note title field
@@ -512,19 +539,22 @@ docs(api): update authentication endpoints
 
 ### Phase 8: Connections (Week 8)
 
-**8.1 Connection Creation**
+#### 8.1 Connection Creation
+
 - [ ] Add anchor points to notes (4 sides)
 - [ ] Drag from anchor to create edge
 - [ ] Connect to target anchor
 - [ ] Save connection to database
 
-**8.2 Edge Component**
+#### 8.2 Edge Component
+
 - [ ] Create custom Edge component
 - [ ] Add arrow head
 - [ ] Support curved/straight/orthogonal
 - [ ] Implement edge selection
 
-**8.3 Connection Features**
+#### 8.3 Connection Features
+
 - [ ] Add connection labels
 - [ ] Implement label editing
 - [ ] Add color picker for edges
@@ -535,20 +565,23 @@ docs(api): update authentication endpoints
 
 ### Phase 9: Components System (Week 9)
 
-**9.1 Component Panel**
+#### 9.1 Component Panel
+
 - [ ] Create floating ComponentPanel
 - [ ] Toggle panel visibility
 - [ ] List all story components
 - [ ] Component search/filter
 
-**9.2 Component CRUD**
+#### 9.2 Component CRUD
+
 - [ ] Create component form
 - [ ] Support types: number, string, boolean
 - [ ] Edit component (name, default value)
 - [ ] Delete component
 - [ ] Prevent duplicate names
 
-**9.3 Component Display**
+#### 9.3 Component Display
+
 - [ ] Show component name
 - [ ] Show current value
 - [ ] Color tag indicator
@@ -558,19 +591,22 @@ docs(api): update authentication endpoints
 
 ### Phase 10: @ References (Week 10)
 
-**10.1 Autocomplete**
+#### 10.1 Autocomplete
+
 - [ ] Detect @ trigger in editor
 - [ ] Show component dropdown
 - [ ] Filter by typed text
 - [ ] Insert component reference
 
-**10.2 Reference Display**
+#### 10.2 Reference Display
+
 - [ ] Style inline references (chip/badge)
 - [ ] Show component name
 - [ ] Click to view component
 - [ ] Handle deleted components
 
-**10.3 Reference Tracking**
+#### 10.3 Reference Tracking
+
 - [ ] Create component_references entries
 - [ ] Update on note save
 - [ ] Clean up stale references
@@ -580,18 +616,21 @@ docs(api): update authentication endpoints
 
 ### Phase 11: Auto-save & State (Week 11)
 
-**11.1 State Management**
+#### 11.1 State Management
+
 - [ ] Set up Zustand boardStore
 - [ ] Sync React Flow state with store
 - [ ] Handle undo/redo (optional)
 
-**11.2 Auto-save**
+#### 11.2 Auto-save
+
 - [ ] Debounced save (2s delay)
 - [ ] Show saving indicator
 - [ ] Handle save errors
 - [ ] Conflict resolution (last-write-wins)
 
-**11.3 Data Loading**
+#### 11.3 Data Loading
+
 - [ ] Fetch board data on mount
 - [ ] Load notes and connections
 - [ ] Load components
@@ -601,24 +640,28 @@ docs(api): update authentication endpoints
 
 ### Phase 12: Polish & Deploy (Week 12)
 
-**12.1 Error Handling**
+#### 12.1 Error Handling
+
 - [ ] Global error boundary
 - [ ] Toast notifications
 - [ ] Form error messages
 - [ ] Network error handling
 
-**12.2 Loading States**
+#### 12.2 Loading States
+
 - [ ] Page loading skeletons
 - [ ] Button loading spinners
 - [ ] Optimistic UI updates
 
-**12.3 Testing**
+#### 12.3 Testing
+
 - [ ] Unit tests (Vitest)
 - [ ] E2E tests (Playwright)
 - [ ] Test auth flows
 - [ ] Test board operations
 
-**12.4 Deployment**
+#### 12.4 Deployment
+
 - [ ] Configure Vercel project
 - [ ] Set environment variables
 - [ ] Deploy to production
@@ -630,7 +673,7 @@ docs(api): update authentication endpoints
 ## 6. Success Criteria for MVP
 
 | Criteria | Target |
-|----------|--------|
+| ---------- | -------- |
 | User can sign up/login | ✓ Works |
 | User can create a story | ✓ Works |
 | User can create notes on canvas | ✓ Works |
@@ -646,7 +689,7 @@ docs(api): update authentication endpoints
 ## 7. Risk Mitigation
 
 | Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
+| ------ | ------------- | -------- | ------------ |
 | React Flow performance | Medium | High | Virtualization, limit visible nodes |
 | Supabase free tier limits | Low | Medium | Optimize queries, implement caching |
 | Auth complexity | Low | Medium | Use Supabase Auth (battle-tested) |
@@ -698,4 +741,4 @@ docs(api): update authentication endpoints
 
 ---
 
-*Last Updated: December 28, 2025*
+Last Updated: *January 03, 2026*

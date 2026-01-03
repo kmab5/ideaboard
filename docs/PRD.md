@@ -137,30 +137,78 @@ A whiteboard-based note application where:
 
 ### 4.2 Notes (Cards/Nodes)
 
+All notes support **Markdown** rendering for rich content formatting.
+
 #### 4.2.1 Note Types
 
 | Type             | Description                                                | Priority |
 | ---------------- | ---------------------------------------------------------- | -------- |
-| Normal Note      | Free-form rich text content where users can input anything | P0       |
+| Normal Note      | Free-form Markdown content where users can input anything  | P0       |
+| Drawing          | Freehand drawing that can be connected like any note       | P0       |
 | Conditional Note | Branching note with conditions that determine flow paths   | P0       |
 | Technical Note   | Note for updating/modifying component values               | P0       |
 | Image Note       | Embedded images with captions                              | P1       |
 | Link Note        | URL previews with thumbnails                               | P1       |
-| Checklist Note   | Task lists with checkboxes                                 | P1       |
 | Code Note        | Syntax-highlighted code blocks                             | P2       |
 | File Note        | Attached documents (PDF, etc.)                             | P2       |
 | Embed Note       | YouTube, Figma, Google Docs embeds                         | P2       |
 
 #### 4.2.1.1 Normal Note Details
 
-The default note type for capturing any content:
+The default note type for capturing any content. Notes are written and rendered in **Markdown** format.
 
-- Rich text formatting (bold, italic, lists, headings)
+**Supported Markdown Features:**
+
+| Feature           | Syntax Example                          | Priority |
+| ----------------- | --------------------------------------- | -------- |
+| Bold              | `**bold text**`                         | P0       |
+| Italic            | `*italic text*`                         | P0       |
+| Headings          | `# H1`, `## H2`, `### H3`               | P0       |
+| Unordered Lists   | `- item` or `* item`                    | P0       |
+| Ordered Lists     | `1. item`                               | P0       |
+| Task Lists        | `- [ ] unchecked`, `- [x] checked`      | P0       |
+| Links             | `[text](url)`                           | P0       |
+| Inline Code       | `` `code` ``                            | P0       |
+| Code Blocks       | ` ```lang ` (fenced)                    | P1       |
+| Tables            | `\| col1 \| col2 \|`                    | P1       |
+| Blockquotes       | `> quoted text`                         | P1       |
+| Horizontal Rules  | `---` or `***`                          | P2       |
+| Strikethrough     | `~~strikethrough~~`                     | P2       |
+
+**Additional Features:**
+
 - Support for @mentions to reference Components (see 4.6)
-- Inline images and links
+- Image attachments (block element, full-width)
 - Free-form content with no structural constraints
+- Live preview while editing
 
-#### 4.2.1.2 Conditional Note Details
+#### 4.2.1.2 Drawing Details
+
+Freehand drawing mode allows users to sketch directly on the canvas. Drawings are treated as first-class objects like notes.
+
+| Feature              | Description                                               | Priority |
+| -------------------- | --------------------------------------------------------- | -------- |
+| Freehand Drawing     | Pen/brush tool for free-form sketching                    | P0       |
+| Drawing as Node      | Drawings behave like notes (can be connected)             | P0       |
+| Movable              | Drag drawings anywhere on the board                       | P0       |
+| Resizable            | Scale drawings up or down                                 | P0       |
+| Stroke Color         | Customizable pen/brush color                              | P0       |
+| Stroke Width         | Adjustable line thickness (1-10px)                        | P0       |
+| Eraser Tool          | Remove portions of a drawing                              | P1       |
+| Connection Anchors   | 4 anchor points for connections (top, bottom, left, right)| P0       |
+| Drawing Bounding Box | Auto-calculated bounds for positioning                    | P0       |
+| Export as Image      | Save drawing as PNG/SVG                                   | P2       |
+| Drawing Panel        | Quick access to drawing tools                             | P1       |
+
+**Drawing Interactions:**
+
+- **Enter Draw Mode:** Keyboard shortcut (D) or toolbar button
+- **Create Drawing:** Click and drag on canvas while in draw mode
+- **Exit Draw Mode:** Press Escape or click selection tool
+- **Move Drawing:** Exit draw mode, then drag the drawing
+- **Connect Drawings:** Drag from anchor point to another note/drawing
+
+#### 4.2.1.3 Conditional Note Details
 
 Specialized note for branching logic and decision points:
 
@@ -180,7 +228,7 @@ Specialized note for branching logic and decision points:
 - `@playerName == "Hero"` - String comparison
 - `@gold > 100 AND @reputation > 50` - Compound conditions
 
-#### 4.2.1.3 Technical Note Details
+#### 4.2.1.4 Technical Note Details
 
 Specialized note for modifying component values:
 
@@ -224,6 +272,33 @@ Specialized note for modifying component values:
 - **Delete:** Delete key or context menu
 - **Multi-select:** Shift+click or lasso selection
 - **Group Move:** Move multiple selected notes together
+
+#### 4.2.4 Image Attachments in Notes
+
+Users can upload and attach images directly into notes. Images are rendered as block-level elements.
+
+| Feature             | Description                                        | Priority |
+| ------------------- | -------------------------------------------------- | -------- |
+| Upload Image        | Drag-and-drop or click to upload                   | P0       |
+| Supported Formats   | JPG, PNG, GIF, WebP, SVG                           | P0       |
+| Block Element       | Images take up entire line (not inline)            | P0       |
+| Max File Size       | 10MB per image                                     | P0       |
+| Image Preview       | Thumbnail shown in note                            | P0       |
+| Full-width Display  | Images scale to note width                         | P0       |
+| Click to Expand     | Open image in lightbox/modal for full view         | P1       |
+| Alt Text            | Optional description for accessibility             | P1       |
+| Image Caption       | Optional caption text below image                  | P1       |
+| Multiple Images     | Support multiple images per note                   | P0       |
+| Reorder Images      | Drag to reorder images within note                 | P1       |
+| Delete Image        | Remove individual images from note                 | P0       |
+| Image Storage       | Stored in Supabase Storage (attachments bucket)    | P0       |
+
+**Image Markdown Syntax:**
+
+```markdown
+![Alt text](image-url)
+![Alt text](image-url "Optional caption")
+```
 
 ### 4.3 Connections (Arrows/Edges)
 
@@ -1045,19 +1120,20 @@ App
 | Compliance     | GDPR, CCPA compliant                             |
 | SSO            | SAML 2.0 for enterprise                          |
 
-### 6.5 Technology Stack (Recommended)
+### 6.5 Technology Stack
 
 | Layer            | Technology                                |
 | ---------------- | ----------------------------------------- |
-| Frontend         | React/Next.js + TypeScript                |
-| Canvas Engine    | HTML5 Canvas or WebGL (Pixi.js/Fabric.js) |
-| State Management | Zustand or Redux Toolkit                  |
-| Real-time Sync   | WebSockets + CRDT (Yjs)                   |
-| Backend          | Node.js / Go                              |
-| Database         | PostgreSQL + Redis                        |
-| File Storage     | AWS S3                                    |
-| Search           | Elasticsearch / Meilisearch               |
-| Hosting          | AWS / Vercel                              |
+| Frontend         | Next.js 14 + TypeScript                   |
+| Canvas Engine    | React Flow (node-based canvas)            |
+| State Management | Zustand + TanStack Query                  |
+| UI Components    | shadcn/ui (Radix-based)                   |
+| Markdown         | react-markdown + remark-gfm               |
+| Drawing          | tldraw                                    |
+| Backend          | Supabase (PostgreSQL + Auth + Storage)    |
+| Real-time        | Supabase Realtime (WebSockets)            |
+| File Storage     | Supabase Storage                          |
+| Hosting          | Vercel (Frontend) + Supabase (Backend)    |
 
 ### 6.6 Data Model & Structure
 
@@ -1083,10 +1159,11 @@ User
         │   │   └── Components (references)
         │   └── Connections
         ├── Notes (1:many)
-        │   ├── Normal Notes
+        │   ├── Normal Notes (Markdown content)
+        │   ├── Drawing Notes (Freehand sketches)
         │   ├── Conditional Notes
         │   └── Technical Notes
-        └── Connections (1:many) - Arrows between notes
+        └── Connections (1:many) - Arrows between notes/drawings
 ```
 
 #### 6.6.2 User Entity
@@ -1176,26 +1253,27 @@ User
 
 #### 6.6.7 Note Entity
 
-| Field          | Type      | Description                               |
-| -------------- | --------- | ----------------------------------------- |
-| id             | UUID      | Unique identifier                         |
-| board_id       | UUID      | Parent board reference (FK)               |
-| container_id   | UUID      | Parent container reference (FK, nullable) |
-| type           | Enum      | 'normal', 'conditional', 'technical'      |
-| title          | String    | Optional note title                       |
-| content        | JSON      | Rich text content with @ references       |
-| position_x     | Float     | X coordinate on canvas                    |
-| position_y     | Float     | Y coordinate on canvas                    |
-| width          | Float     | Note width                                |
-| height         | Float     | Note height                               |
-| color          | String    | Background color                          |
-| is_collapsed   | Boolean   | Collapsed to title only                   |
-| is_locked      | Boolean   | Prevent movement                          |
-| z_index        | Integer   | Layer order                               |
-| condition_data | JSON      | Condition config (for conditional notes)  |
-| technical_data | JSON      | Modification config (for technical notes) |
-| created_at     | Timestamp | Creation date                             |
-| updated_at     | Timestamp | Last modification                         |
+| Field          | Type      | Description                                    |
+| -------------- | --------- | ---------------------------------------------- |
+| id             | UUID      | Unique identifier                              |
+| board_id       | UUID      | Parent board reference (FK)                    |
+| container_id   | UUID      | Parent container reference (FK, nullable)      |
+| type           | Enum      | 'normal', 'drawing', 'conditional', 'technical'|
+| title          | String    | Optional note title                            |
+| content        | JSON      | Markdown content with @ references             |
+| position_x     | Float     | X coordinate on canvas                         |
+| position_y     | Float     | Y coordinate on canvas                         |
+| width          | Float     | Note width                                     |
+| height         | Float     | Note height                                    |
+| color          | String    | Background color                               |
+| is_collapsed   | Boolean   | Collapsed to title only                        |
+| is_locked      | Boolean   | Prevent movement                               |
+| z_index        | Integer   | Layer order                                    |
+| condition_data | JSON      | Condition config (for conditional notes)       |
+| technical_data | JSON      | Modification config (for technical notes)      |
+| drawing_data   | JSON      | Stroke data (for drawing notes)                |
+| created_at     | Timestamp | Creation date                                  |
+| updated_at     | Timestamp | Last modification                              |
 
 #### 6.6.8 Connection Entity
 

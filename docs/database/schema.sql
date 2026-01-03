@@ -55,8 +55,8 @@ CREATE TYPE dicebear_style AS ENUM (
 -- Component data types
 CREATE TYPE component_type AS ENUM ('number', 'string', 'boolean', 'list');
 
--- Note types
-CREATE TYPE note_type AS ENUM ('normal', 'conditional', 'technical');
+-- Note types (drawing type for freehand drawings)
+CREATE TYPE note_type AS ENUM ('normal', 'drawing', 'conditional', 'technical');
 
 -- Connection anchor positions
 CREATE TYPE anchor_position AS ENUM ('top', 'bottom', 'left', 'right');
@@ -311,6 +311,8 @@ CREATE TABLE notes (
     condition_data JSONB,
     -- For technical notes: stores component modification instructions
     technical_data JSONB,
+    -- For drawing notes: stores stroke data (points, colors, widths)
+    drawing_data JSONB,
     
     -- Tags for filtering
     tags TEXT[] DEFAULT '{}',
