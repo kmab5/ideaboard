@@ -603,15 +603,27 @@ function CanvasInner({
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
-    setZoom((z) => Math.min(z * 1.2, 4));
-  }, []);
+    reactFlowInstance.zoomIn({ duration: 200 });
+    // Update zoom state after animation
+    setTimeout(() => {
+      setZoom(reactFlowInstance.getZoom());
+    }, 210);
+  }, [reactFlowInstance]);
 
   const handleZoomOut = useCallback(() => {
-    setZoom((z) => Math.max(z / 1.2, 0.1));
-  }, []);
+    reactFlowInstance.zoomOut({ duration: 200 });
+    // Update zoom state after animation
+    setTimeout(() => {
+      setZoom(reactFlowInstance.getZoom());
+    }, 210);
+  }, [reactFlowInstance]);
 
   const handleFitView = useCallback(() => {
     reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+    // Update zoom state after animation
+    setTimeout(() => {
+      setZoom(reactFlowInstance.getZoom());
+    }, 310);
   }, [reactFlowInstance]);
 
   // Keyboard shortcuts
@@ -713,8 +725,22 @@ function CanvasInner({
         }}
         minZoom={0.1}
         maxZoom={4}
+        // TODO: Touch panning not working correctly in Chrome DevTools touch simulation
+        // Need to investigate React Flow touch event handling for mobile devices
+        // Pan mode: allow all inputs including touch (button 0)
+        // Select mode: middle mouse (1) and right mouse (2) for panning
         panOnDrag={activeTool === 'pan'}
+        panOnScroll={false}
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={false}
+        // In select mode, dragging on empty canvas creates selection box
         selectionOnDrag={activeTool === 'select'}
+        selectNodesOnDrag={activeTool === 'select'}
+        // Enable node dragging in both modes
+        nodesDraggable={true}
+        // Prevent browser scroll/zoom interference
+        preventScrolling={true}
         fitView={nodes.length === 0}
         onMoveEnd={(_, viewport) => {
           setZoom(viewport.zoom);

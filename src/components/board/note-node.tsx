@@ -80,6 +80,29 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
   const editStartStateRef = useRef<{ title: string; content: Note['content'] } | null>(null);
   const resizeStartRef = useRef<{ width: number; height: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const noteContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-resize note when content exceeds bounds
+  useEffect(() => {
+    if (!noteContainerRef.current || note.is_locked) return;
+
+    // Use a small delay to ensure content is rendered
+    const timer = setTimeout(() => {
+      if (!noteContainerRef.current) return;
+
+      const container = noteContainerRef.current;
+      const scrollHeight = container.scrollHeight;
+      const currentHeight = note.height;
+
+      // If content overflows, expand the note
+      if (scrollHeight > currentHeight) {
+        const newHeight = Math.max(scrollHeight + 10, currentHeight); // Add padding
+        onUpdate(note.id, { height: newHeight });
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [content, images, note.id, note.height, note.is_locked, onUpdate, isEditingContent]);
 
   // Sync state when note prop changes
   useEffect(() => {
@@ -379,13 +402,14 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
         aria-label="Upload image"
       />
 
-      {/* Node Resizer */}
+      {/* Node Resizer - smaller handles to avoid touch conflicts */}
       <NodeResizer
         minWidth={150}
         minHeight={100}
         isVisible={selected && !note.is_locked}
-        lineClassName="!border-primary"
-        handleClassName="!h-2 !w-2 !border-2 !border-primary !bg-background"
+        lineClassName="!border-primary !border-[1px]"
+        handleClassName="!h-2 !w-2 !border-2 !border-primary !bg-background !rounded-sm"
+        handleStyle={{ touchAction: 'none' }}
         onResizeStart={handleResizeStart}
         onResizeEnd={handleResize}
       />
@@ -450,16 +474,17 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
       />
 
       <div
+        ref={noteContainerRef}
         className={cn(
-          'min-w-[150px] rounded-lg border shadow-sm transition-shadow',
+          'flex min-w-[150px] flex-col rounded-lg border shadow-sm transition-shadow',
           bgClass,
           selected && 'shadow-md ring-2 ring-primary',
           note.is_locked && 'opacity-80'
         )}
-        style={{ width: note.width, minHeight: note.height }}
+        style={{ width: note.width, height: note.height }}
       >
         {/* Header */}
-        <div className="flex items-center gap-1 rounded-t-lg border-b bg-black/5 px-2 py-1">
+        <div className="flex shrink-0 items-center gap-1 rounded-t-lg border-b bg-black/5 px-2 py-1">
           <GripVertical className="h-4 w-4 cursor-grab text-gray-600" />
 
           {isEditingTitle ? (
@@ -581,7 +606,7 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
 
         {/* Content */}
         <div
-          className="nodrag group p-3"
+          className="nodrag group flex-1 overflow-auto p-3"
           onDoubleClick={handleContentDoubleClick}
           onTouchStart={handleContentTouchStart}
           onTouchEnd={handleContentTouchEnd}
@@ -592,7 +617,8 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
               onChange={(e) => setContent(e.target.value)}
               onBlur={handleContentBlur}
               onKeyDown={handleContentKeyDown}
-              className="h-full min-h-[60px] w-full resize-none bg-transparent text-sm text-gray-900 focus:outline-none"
+              className="h-full w-full resize-none bg-transparent text-sm text-gray-900 focus:outline-none"
+              style={{ minHeight: 'calc(100% - 8px)' }}
               placeholder="Type your note here... Supports **Markdown**! Use {{variable}} for references"
               autoFocus
               onClick={(e) => e.stopPropagation()}
