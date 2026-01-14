@@ -40,7 +40,18 @@ export type DicebearStyle =
 
 export type ComponentType = 'number' | 'string' | 'boolean' | 'list';
 
-export type NoteType = 'normal' | 'conditional' | 'technical';
+export type NoteType = 'normal' | 'drawing' | 'conditional' | 'technical';
+
+// Drawing data structure for freehand drawings
+export interface DrawingData {
+  strokes: Array<{
+    points: Array<{ x: number; y: number; pressure?: number }>;
+    color: string;
+    width: number;
+  }>;
+  // tldraw snapshot for complex drawings
+  snapshot?: unknown;
+}
 
 export type AnchorPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -167,6 +178,7 @@ export interface Note {
   z_index: number;
   condition_data: Record<string, unknown> | null;
   technical_data: Record<string, unknown> | null;
+  drawing_data: DrawingData | null;
   tags: string[];
   created_at: string;
   updated_at: string;

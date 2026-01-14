@@ -786,6 +786,9 @@ $$;
 -- Create bucket for file attachments (private)
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('attachments', 'attachments', false);
 
+-- Create bucket for note image attachments (public for easy display)
+-- INSERT INTO storage.buckets (id, name, public) VALUES ('note-attachments', 'note-attachments', true);
+
 -- ============================================================================
 -- STORAGE POLICIES
 -- ============================================================================
@@ -867,6 +870,25 @@ ON storage.objects FOR DELETE
 USING (
     bucket_id = 'attachments'
     AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- NOTE-ATTACHMENTS BUCKET POLICIES (public for note images)
+CREATE POLICY "Users can upload note attachments"
+ON storage.objects FOR INSERT
+WITH CHECK (
+    bucket_id = 'note-attachments'
+    AND auth.role() = 'authenticated'
+);
+
+CREATE POLICY "Note attachments are publicly accessible"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'note-attachments');
+
+CREATE POLICY "Users can delete their own note attachments"
+ON storage.objects FOR DELETE
+USING (
+    bucket_id = 'note-attachments'
+    AND auth.role() = 'authenticated'
 );
 
 -- ============================================================================

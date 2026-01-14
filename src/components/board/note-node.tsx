@@ -2,7 +2,17 @@
 
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { Handle, Position, type NodeProps, NodeResizer } from 'reactflow';
-import { GripVertical, MoreHorizontal, Trash2, Lock, Unlock, Palette } from 'lucide-react';
+import {
+  GripVertical,
+  MoreHorizontal,
+  Trash2,
+  Lock,
+  Unlock,
+  Palette,
+  ImagePlus,
+  X,
+} from 'lucide-react';
+import Image from 'next/image';
 import type { Note } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,11 +27,13 @@ import {
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { MarkdownRenderer } from '@/components/common';
 
 interface NoteNodeData {
   note: Note;
   onUpdate: (id: string, updates: Partial<Note>) => void;
   onDelete: (id: string) => void;
+  onImageUpload?: (noteId: string, file: File) => Promise<string | null>;
 }
 
 // Available note colors
@@ -37,17 +49,37 @@ const NOTE_COLORS = [
   { value: '#C8E6C9', label: 'Green', bg: 'bg-green-100' },
 ];
 
+// Helper to extract text content from blocks
+const getTextContent = (noteContent: Note['content']): string => {
+  if (!noteContent?.blocks?.length) return '';
+  return noteContent.blocks
+    .filter((block) => block.type === 'paragraph' || block.type === 'text')
+    .map((block) => block.content as string)
+    .join('\n\n');
+};
+
+// Helper to extract images from blocks
+const getImages = (noteContent: Note['content']): string[] => {
+  if (!noteContent?.blocks?.length) return [];
+  return noteContent.blocks
+    .filter((block) => block.type === 'image')
+    .map((block) => block.content as string);
+};
+
 const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
-  const { note, onUpdate, onDelete } = data;
+  const { note, onUpdate, onDelete, onImageUpload } = data;
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [title, setTitle] = useState(note.title || '');
-  const [content, setContent] = useState((note.content?.blocks?.[0]?.content as string) || '');
+  const [content, setContent] = useState(getTextContent(note.content));
+  const [images, setImages] = useState<string[]>(getImages(note.content));
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state when note prop changes
   useEffect(() => {
     setTitle(note.title || '');
-    setContent((note.content?.blocks?.[0]?.content as string) || '');
+    setContent(getTextContent(note.content));
+    setImages(getImages(note.content));
   }, [note.title, note.content]);
 
   // Touch double-tap detection refs
@@ -134,14 +166,29 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
     onUpdate(note.id, { title });
   }, [note.id, title, onUpdate]);
 
+  // Build blocks array from content and images
+  const buildContentBlocks = useCallback((textContent: string, imageUrls: string[]) => {
+    const blocks: Array<{ type: string; content: unknown }> = [];
+
+    // Add text content as paragraph block
+    if (textContent.trim()) {
+      blocks.push({ type: 'paragraph', content: textContent });
+    }
+
+    // Add image blocks
+    imageUrls.forEach((url) => {
+      blocks.push({ type: 'image', content: url });
+    });
+
+    return { blocks };
+  }, []);
+
   const handleContentBlur = useCallback(() => {
     setIsEditingContent(false);
     onUpdate(note.id, {
-      content: {
-        blocks: [{ type: 'paragraph', content }],
-      },
+      content: buildContentBlocks(content, images),
     });
-  }, [note.id, content, onUpdate]);
+  }, [note.id, content, images, onUpdate, buildContentBlocks]);
 
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -165,38 +212,6 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
     onUpdate(note.id, { is_locked: !note.is_locked });
   }, [note.id, note.is_locked, onUpdate]);
 
-  // Parse content and render references with styling
-  const renderContentWithReferences = useCallback((text: string) => {
-    // Match {{variableName}} pattern for references
-    const referencePattern = /\{\{([^}]+)\}\}/g;
-    const parts: (string | JSX.Element)[] = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = referencePattern.exec(text)) !== null) {
-      // Add text before the reference
-      if (match.index > lastIndex) {
-        parts.push(text.slice(lastIndex, match.index));
-      }
-      // Add styled reference - using colors that work in both light and dark mode
-      parts.push(
-        <span
-          key={match.index}
-          className="inline-flex items-center rounded bg-blue-500/20 px-1.5 py-0.5 font-mono text-xs font-semibold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300"
-          title={`Reference: ${match[1]}`}
-        >
-          {match[1]}
-        </span>
-      );
-      lastIndex = match.index + match[0].length;
-    }
-    // Add remaining text
-    if (lastIndex < text.length) {
-      parts.push(text.slice(lastIndex));
-    }
-    return parts.length > 0 ? parts : text;
-  }, []);
-
   const handleColorChange = useCallback(
     (color: string) => {
       onUpdate(note.id, { color });
@@ -209,6 +224,43 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
       onUpdate(note.id, { width: params.width, height: params.height });
     },
     [note.id, onUpdate]
+  );
+
+  const handleAddImageClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !onImageUpload) return;
+
+      const imageUrl = await onImageUpload(note.id, file);
+      if (imageUrl) {
+        const newImages = [...images, imageUrl];
+        setImages(newImages);
+        onUpdate(note.id, {
+          content: buildContentBlocks(content, newImages),
+        });
+      }
+
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    [note.id, images, content, onImageUpload, onUpdate, buildContentBlocks]
+  );
+
+  const handleRemoveImage = useCallback(
+    (indexToRemove: number) => {
+      const newImages = images.filter((_, i) => i !== indexToRemove);
+      setImages(newImages);
+      onUpdate(note.id, {
+        content: buildContentBlocks(content, newImages),
+      });
+    },
+    [note.id, images, content, onUpdate, buildContentBlocks]
   );
 
   const noteColors: Record<string, string> = {
@@ -227,6 +279,16 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
 
   return (
     <>
+      {/* Hidden file input for image uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+        aria-label="Upload image"
+      />
+
       {/* Node Resizer */}
       <NodeResizer
         minWidth={150}
@@ -346,6 +408,23 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {/* Add Image option */}
+              {onImageUpload && (
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddImageClick();
+                    }}
+                    disabled={note.is_locked}
+                  >
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    Add Image
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <Palette className="mr-2 h-4 w-4" />
@@ -423,17 +502,46 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
               onBlur={handleContentBlur}
               onKeyDown={handleContentKeyDown}
               className="h-full min-h-[60px] w-full resize-none bg-transparent text-sm text-gray-900 focus:outline-none"
-              placeholder="Type your note here... Use {{variable}} for references"
+              placeholder="Type your note here... Supports **Markdown**! Use {{variable}} for references"
               autoFocus
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
-            <div className="cursor-text whitespace-pre-wrap text-sm text-gray-900">
+            <div className="cursor-text text-sm text-gray-900">
               {content ? (
-                renderContentWithReferences(content)
+                <MarkdownRenderer content={content} />
               ) : (
                 <span className="italic text-gray-500">Double-tap to edit...</span>
               )}
+            </div>
+          )}
+
+          {/* Image attachments */}
+          {images.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {images.map((imageUrl, index) => (
+                <div key={index} className="group/image relative">
+                  <Image
+                    src={imageUrl}
+                    alt={`Attachment ${index + 1}`}
+                    width={400}
+                    height={300}
+                    className="w-full rounded border object-cover"
+                  />
+                  {!note.is_locked && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage(index);
+                      }}
+                      className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity hover:bg-black/70 group-hover/image:opacity-100"
+                      title="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

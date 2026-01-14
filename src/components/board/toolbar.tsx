@@ -13,6 +13,7 @@ import {
   Save,
   ChevronLeft,
   ChevronRight,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -27,6 +28,7 @@ interface ToolbarProps {
   onZoomOut: () => void;
   onFitView: () => void;
   onAddNote: () => void;
+  onAddDrawing: () => void;
   onToolChange: (tool: 'select' | 'pan') => void;
   onToggleGrid: () => void;
   onManualSave?: () => void;
@@ -40,6 +42,7 @@ export function Toolbar({
   onZoomOut,
   onFitView,
   onAddNote,
+  onAddDrawing,
   onToolChange,
   onToggleGrid,
   onManualSave,
@@ -123,6 +126,16 @@ export function Toolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">Add Note (N)</TooltipContent>
+          </Tooltip>
+
+          {/* Add Drawing */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAddDrawing}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Add Drawing (D)</TooltipContent>
           </Tooltip>
 
           <Separator orientation="horizontal" className="w-6" />

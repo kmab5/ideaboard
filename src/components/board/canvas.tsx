@@ -21,13 +21,16 @@ import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
 import type { Note, Connection, Board } from '@/types/database';
 import { NoteNode } from './note-node';
+import { DrawingNode } from './drawing-node';
 import { ConnectionEdge } from './connection-edge';
 import { Toolbar } from './toolbar';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
 // Custom node types - memoized to prevent recreation warnings
 const defaultNodeTypes = {
   noteNode: NoteNode,
+  drawingNode: DrawingNode,
 };
 
 // Custom edge types - memoized to prevent recreation warnings
@@ -64,27 +67,57 @@ function CanvasInner({
   // Track if initial load is complete
   const isInitializedRef = useRef(false);
   const reactFlowInstance = useReactFlow();
+  const supabase = createClient();
 
   // Memoize node and edge types to prevent React Flow warnings
   const nodeTypes = useMemo(() => defaultNodeTypes, []);
   const edgeTypes = useMemo(() => defaultEdgeTypes, []);
+
+  // Handle image upload to Supabase Storage
+  const handleImageUpload = useCallback(
+    async (noteId: string, file: File): Promise<string | null> => {
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${board.id}/${noteId}/${Date.now()}.${fileExt}`;
+
+        const { data, error } = await supabase.storage
+          .from('note-attachments')
+          .upload(fileName, file);
+
+        if (error) throw error;
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('note-attachments').getPublicUrl(data.path);
+
+        return publicUrl;
+      } catch (error) {
+        console.error('Failed to upload image:', error);
+        toast.error('Failed to upload image');
+        return null;
+      }
+    },
+    [board.id, supabase.storage]
+  );
 
   // Convert notes to React Flow nodes
   const notesToNodes = useCallback(
     (notesList: Note[]): Node[] =>
       notesList.map((note) => ({
         id: note.id,
-        type: 'noteNode',
+        type: note.type === 'drawing' ? 'drawingNode' : 'noteNode',
         position: { x: note.position_x, y: note.position_y },
         data: {
           note,
           onUpdate: onUpdateNote,
           onDelete: onDeleteNote,
+          onImageUpload: note.type === 'drawing' ? undefined : handleImageUpload,
         },
         style: { width: note.width, height: note.height },
         draggable: !note.is_locked,
       })),
-    [onUpdateNote, onDeleteNote]
+    [onUpdateNote, onDeleteNote, handleImageUpload]
   );
 
   // Convert connections to React Flow edges
@@ -175,10 +208,12 @@ function CanvasInner({
         if (noteData) {
           return {
             ...node,
+            type: noteData.type === 'drawing' ? 'drawingNode' : 'noteNode',
             data: {
               note: noteData,
               onUpdate: onUpdateNote,
               onDelete: onDeleteNote,
+              onImageUpload: noteData.type === 'drawing' ? undefined : handleImageUpload,
             },
             draggable: !noteData.is_locked,
           };
@@ -192,7 +227,7 @@ function CanvasInner({
       const noteIds = new Set(notes.map((n) => n.id));
       return currentNodes.filter((node) => noteIds.has(node.id));
     });
-  }, [notes, notesToNodes, onUpdateNote, onDeleteNote, setNodes]);
+  }, [notes, notesToNodes, onUpdateNote, onDeleteNote, handleImageUpload, setNodes]);
 
   // Handle edge updates
   useEffect(() => {
@@ -295,10 +330,30 @@ function CanvasInner({
     [board.id, onCreateConnection]
   );
 
+  // Get the center of the current viewport in flow coordinates
+  const getViewportCenter = useCallback(() => {
+    const viewport = reactFlowInstance.getViewport();
+
+    // Get the container dimensions from the React Flow wrapper
+    const flowContainer = document.querySelector('.react-flow');
+    const width = flowContainer?.clientWidth || window.innerWidth;
+    const height = flowContainer?.clientHeight || window.innerHeight;
+
+    // Convert screen center to flow coordinates
+    const centerX = (-viewport.x + width / 2) / viewport.zoom;
+    const centerY = (-viewport.y + height / 2) / viewport.zoom;
+
+    // Add small random offset to prevent stacking
+    return {
+      x: centerX + (Math.random() - 0.5) * 50,
+      y: centerY + (Math.random() - 0.5) * 50,
+    };
+  }, [reactFlowInstance]);
+
   // Add new note at position
   const handleAddNote = useCallback(
     (position?: { x: number; y: number }) => {
-      const pos = position || { x: 100 + Math.random() * 200, y: 100 + Math.random() * 200 };
+      const pos = position || getViewportCenter();
 
       // Random color for new notes
       const noteColors = [
@@ -332,7 +387,34 @@ function CanvasInner({
 
       onCreateNote(newNote);
     },
-    [board.id, nodes.length, onCreateNote]
+    [board.id, nodes.length, onCreateNote, getViewportCenter]
+  );
+
+  // Add new drawing at position
+  const handleAddDrawing = useCallback(
+    (position?: { x: number; y: number }) => {
+      const pos = position || getViewportCenter();
+
+      const newDrawing: Partial<Note> = {
+        id: uuidv4(),
+        board_id: board.id,
+        type: 'drawing',
+        title: 'Drawing',
+        content: { blocks: [] },
+        position_x: pos.x,
+        position_y: pos.y,
+        width: 300,
+        height: 200,
+        color: '#FFFFFF',
+        is_collapsed: false,
+        is_locked: false,
+        z_index: nodes.length,
+        drawing_data: { strokes: [] },
+      };
+
+      onCreateNote(newDrawing);
+    },
+    [board.id, nodes.length, onCreateNote, getViewportCenter]
   );
 
   // Zoom controls
@@ -373,6 +455,9 @@ function CanvasInner({
         case 'n':
           handleAddNote();
           break;
+        case 'd':
+          handleAddDrawing();
+          break;
         case 'g':
           setShowGrid((g) => !g);
           break;
@@ -391,7 +476,14 @@ function CanvasInner({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleAddNote, handleZoomIn, handleZoomOut, handleFitView, handleManualSave]);
+  }, [
+    handleAddNote,
+    handleAddDrawing,
+    handleZoomIn,
+    handleZoomOut,
+    handleFitView,
+    handleManualSave,
+  ]);
 
   return (
     <div className="h-full w-full">
@@ -443,6 +535,7 @@ function CanvasInner({
             onZoomOut={handleZoomOut}
             onFitView={handleFitView}
             onAddNote={() => handleAddNote()}
+            onAddDrawing={() => handleAddDrawing()}
             onToolChange={setActiveTool}
             onToggleGrid={() => setShowGrid(!showGrid)}
             onManualSave={handleManualSave}
