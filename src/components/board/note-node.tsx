@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { MarkdownRenderer } from '@/components/common';
+import { useHistoryStore } from '@/lib/store';
 
 interface NoteNodeData {
   note: Note;
@@ -73,6 +74,11 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
   const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(getTextContent(note.content));
   const [images, setImages] = useState<string[]>(getImages(note.content));
+
+  // History tracking
+  const { pushAction, isUndoingOrRedoing } = useHistoryStore();
+  const editStartStateRef = useRef<{ title: string; content: Note['content'] } | null>(null);
+  const resizeStartRef = useRef<{ width: number; height: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state when note prop changes
@@ -91,10 +97,12 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!note.is_locked) {
+        // Capture initial state for undo
+        editStartStateRef.current = { title: note.title || '', content: note.content };
         setIsEditingTitle(true);
       }
     },
-    [note.is_locked]
+    [note.is_locked, note.title, note.content]
   );
 
   const handleTitleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -114,6 +122,8 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
         e.preventDefault();
         e.stopPropagation();
         if (!note.is_locked) {
+          // Capture initial state for undo
+          editStartStateRef.current = { title: note.title || '', content: note.content };
           setIsEditingTitle(true);
         }
         lastTitleTapRef.current = 0;
@@ -121,17 +131,19 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
         lastTitleTapRef.current = now;
       }
     },
-    [note.is_locked]
+    [note.is_locked, note.title, note.content]
   );
 
   const handleContentDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!note.is_locked) {
+        // Capture initial state for undo
+        editStartStateRef.current = { title: note.title || '', content: note.content };
         setIsEditingContent(true);
       }
     },
-    [note.is_locked]
+    [note.is_locked, note.title, note.content]
   );
 
   const handleContentTouchStart = useCallback((e: React.TouchEvent) => {
@@ -151,6 +163,8 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
         e.preventDefault();
         e.stopPropagation();
         if (!note.is_locked) {
+          // Capture initial state for undo
+          editStartStateRef.current = { title: note.title || '', content: note.content };
           setIsEditingContent(true);
         }
         lastContentTapRef.current = 0;
@@ -158,13 +172,31 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
         lastContentTapRef.current = now;
       }
     },
-    [note.is_locked]
+    [note.is_locked, note.title, note.content]
   );
 
   const handleTitleBlur = useCallback(() => {
     setIsEditingTitle(false);
+
+    // Track history if title actually changed and not during undo/redo
+    const startState = editStartStateRef.current;
+    if (startState && startState.title !== title && !isUndoingOrRedoing) {
+      pushAction({
+        type: 'UPDATE_NOTE',
+        undo: {
+          noteId: note.id,
+          previousState: { title: startState.title },
+        },
+        redo: {
+          noteId: note.id,
+          newState: { title },
+        },
+      });
+    }
+    editStartStateRef.current = null;
+
     onUpdate(note.id, { title });
-  }, [note.id, title, onUpdate]);
+  }, [note.id, title, onUpdate, pushAction, isUndoingOrRedoing]);
 
   // Build blocks array from content and images
   const buildContentBlocks = useCallback((textContent: string, imageUrls: string[]) => {
@@ -185,10 +217,31 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
 
   const handleContentBlur = useCallback(() => {
     setIsEditingContent(false);
-    onUpdate(note.id, {
-      content: buildContentBlocks(content, images),
-    });
-  }, [note.id, content, images, onUpdate, buildContentBlocks]);
+
+    const newContent = buildContentBlocks(content, images);
+
+    // Track history if content actually changed and not during undo/redo
+    const startState = editStartStateRef.current;
+    if (startState && !isUndoingOrRedoing) {
+      const startText = getTextContent(startState.content);
+      if (startText !== content) {
+        pushAction({
+          type: 'UPDATE_NOTE',
+          undo: {
+            noteId: note.id,
+            previousState: { content: startState.content },
+          },
+          redo: {
+            noteId: note.id,
+            newState: { content: newContent },
+          },
+        });
+      }
+    }
+    editStartStateRef.current = null;
+
+    onUpdate(note.id, { content: newContent });
+  }, [note.id, content, images, onUpdate, buildContentBlocks, pushAction, isUndoingOrRedoing]);
 
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -214,16 +267,53 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
 
   const handleColorChange = useCallback(
     (color: string) => {
+      // Track history for color change
+      if (!isUndoingOrRedoing && note.color !== color) {
+        pushAction({
+          type: 'UPDATE_NOTE',
+          undo: {
+            noteId: note.id,
+            previousState: { color: note.color },
+          },
+          redo: {
+            noteId: note.id,
+            newState: { color },
+          },
+        });
+      }
       onUpdate(note.id, { color });
     },
-    [note.id, onUpdate]
+    [note.id, note.color, onUpdate, pushAction, isUndoingOrRedoing]
   );
+
+  // Handle resize start - capture initial size
+  const handleResizeStart = useCallback(() => {
+    resizeStartRef.current = { width: note.width, height: note.height };
+  }, [note.width, note.height]);
 
   const handleResize = useCallback(
     (_: unknown, params: { width: number; height: number }) => {
+      // Track history for resize
+      const startSize = resizeStartRef.current;
+      if (startSize && !isUndoingOrRedoing) {
+        if (startSize.width !== params.width || startSize.height !== params.height) {
+          pushAction({
+            type: 'RESIZE_NOTE',
+            undo: {
+              noteId: note.id,
+              previousState: { width: startSize.width, height: startSize.height },
+            },
+            redo: {
+              noteId: note.id,
+              newState: { width: params.width, height: params.height },
+            },
+          });
+        }
+      }
+      resizeStartRef.current = null;
       onUpdate(note.id, { width: params.width, height: params.height });
     },
-    [note.id, onUpdate]
+    [note.id, onUpdate, pushAction, isUndoingOrRedoing]
   );
 
   const handleAddImageClick = useCallback(() => {
@@ -296,7 +386,8 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
         isVisible={selected && !note.is_locked}
         lineClassName="!border-primary"
         handleClassName="!h-2 !w-2 !border-2 !border-primary !bg-background"
-        onResize={handleResize}
+        onResizeStart={handleResizeStart}
+        onResizeEnd={handleResize}
       />
 
       {/* Target handles for receiving connections (rendered first = behind) */}

@@ -26,6 +26,7 @@ import { ConnectionEdge } from './connection-edge';
 import { Toolbar } from './toolbar';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { useHistoryStore } from '@/lib/store';
 
 // Custom node types - memoized to prevent recreation warnings
 const defaultNodeTypes = {
@@ -146,6 +147,141 @@ function CanvasInner({
   const [activeTool, setActiveTool] = useState<'select' | 'pan'>('select');
   const [showGrid, setShowGrid] = useState(true);
   const [zoom, setZoom] = useState(board.viewport_zoom);
+
+  // History store for undo/redo
+  const {
+    pushAction,
+    undo: undoAction,
+    redo: redoAction,
+    canUndo,
+    canRedo,
+    setIsUndoingOrRedoing,
+  } = useHistoryStore();
+
+  // Handle undo
+  const handleUndo = useCallback(() => {
+    const action = undoAction();
+    if (!action) return;
+
+    setIsUndoingOrRedoing(true);
+
+    switch (action.type) {
+      case 'CREATE_NOTE':
+        // Undo create = delete the note
+        if (action.redo.noteId) {
+          onDeleteNote(action.redo.noteId);
+        }
+        break;
+      case 'DELETE_NOTE':
+        // Undo delete = recreate the note
+        if (action.undo.fullState) {
+          onCreateNote(action.undo.fullState as Note);
+        }
+        break;
+      case 'UPDATE_NOTE':
+      case 'MOVE_NOTE':
+      case 'RESIZE_NOTE':
+        // Undo update = restore previous state
+        if (action.undo.noteId && action.undo.previousState) {
+          onUpdateNote(action.undo.noteId, action.undo.previousState as Partial<Note>);
+        }
+        break;
+      case 'CREATE_CONNECTION':
+        // Undo create = delete the connection
+        if (action.redo.connectionId) {
+          onDeleteConnection(action.redo.connectionId);
+        }
+        break;
+      case 'DELETE_CONNECTION':
+        // Undo delete = recreate the connection
+        if (action.undo.fullState) {
+          onCreateConnection(action.undo.fullState as Connection);
+        }
+        break;
+      case 'UPDATE_CONNECTION':
+        // Undo update = restore previous state
+        if (action.undo.connectionId && action.undo.previousState) {
+          onUpdateConnection(
+            action.undo.connectionId,
+            action.undo.previousState as Partial<Connection>
+          );
+        }
+        break;
+    }
+
+    setIsUndoingOrRedoing(false);
+    toast.success('Undone');
+  }, [
+    undoAction,
+    setIsUndoingOrRedoing,
+    onDeleteNote,
+    onCreateNote,
+    onUpdateNote,
+    onDeleteConnection,
+    onCreateConnection,
+    onUpdateConnection,
+  ]);
+
+  // Handle redo
+  const handleRedo = useCallback(() => {
+    const action = redoAction();
+    if (!action) return;
+
+    setIsUndoingOrRedoing(true);
+
+    switch (action.type) {
+      case 'CREATE_NOTE':
+        // Redo create = recreate the note
+        if (action.redo.fullState) {
+          onCreateNote(action.redo.fullState as Note);
+        }
+        break;
+      case 'DELETE_NOTE':
+        // Redo delete = delete the note again
+        if (action.undo.noteId) {
+          onDeleteNote(action.undo.noteId);
+        }
+        break;
+      case 'UPDATE_NOTE':
+      case 'MOVE_NOTE':
+      case 'RESIZE_NOTE':
+        // Redo update = apply new state
+        if (action.redo.noteId && action.redo.newState) {
+          onUpdateNote(action.redo.noteId, action.redo.newState as Partial<Note>);
+        }
+        break;
+      case 'CREATE_CONNECTION':
+        // Redo create = recreate the connection
+        if (action.redo.fullState) {
+          onCreateConnection(action.redo.fullState as Connection);
+        }
+        break;
+      case 'DELETE_CONNECTION':
+        // Redo delete = delete the connection again
+        if (action.undo.connectionId) {
+          onDeleteConnection(action.undo.connectionId);
+        }
+        break;
+      case 'UPDATE_CONNECTION':
+        // Redo update = apply new state
+        if (action.redo.connectionId && action.redo.newState) {
+          onUpdateConnection(action.redo.connectionId, action.redo.newState as Partial<Connection>);
+        }
+        break;
+    }
+
+    setIsUndoingOrRedoing(false);
+    toast.success('Redone');
+  }, [
+    redoAction,
+    setIsUndoingOrRedoing,
+    onDeleteNote,
+    onCreateNote,
+    onUpdateNote,
+    onDeleteConnection,
+    onCreateConnection,
+    onUpdateConnection,
+  ]);
 
   // Manual save handler - saves all current state
   const handleManualSave = useCallback(() => {
@@ -278,15 +414,42 @@ function CanvasInner({
     [onNodesChange]
   );
 
+  // Track drag start positions for undo
+  const dragStartPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
+
+  // Handle node drag start - save initial position for undo
+  const handleNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
+    dragStartPositions.current.set(node.id, { ...node.position });
+  }, []);
+
   // Handle node drag stop - save position when drag ends
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
+      const startPos = dragStartPositions.current.get(node.id);
+
+      // Only track if position actually changed
+      if (startPos && (startPos.x !== node.position.x || startPos.y !== node.position.y)) {
+        pushAction({
+          type: 'MOVE_NOTE',
+          undo: {
+            noteId: node.id,
+            previousState: { position_x: startPos.x, position_y: startPos.y },
+          },
+          redo: {
+            noteId: node.id,
+            newState: { position_x: node.position.x, position_y: node.position.y },
+          },
+        });
+      }
+
+      dragStartPositions.current.delete(node.id);
+
       onUpdateNote(node.id, {
         position_x: node.position.x,
         position_y: node.position.y,
       });
     },
-    [onUpdateNote]
+    [onUpdateNote, pushAction]
   );
 
   // Handle new connections
@@ -325,9 +488,16 @@ function CanvasInner({
         curvature: 'curved',
       };
 
+      // Track history for undo
+      pushAction({
+        type: 'CREATE_CONNECTION',
+        undo: { connectionId: newConnection.id },
+        redo: { connectionId: newConnection.id, fullState: newConnection as Connection },
+      });
+
       onCreateConnection(newConnection);
     },
-    [board.id, onCreateConnection]
+    [board.id, onCreateConnection, pushAction]
   );
 
   // Get the center of the current viewport in flow coordinates
@@ -385,9 +555,16 @@ function CanvasInner({
         z_index: nodes.length,
       };
 
+      // Track history for undo
+      pushAction({
+        type: 'CREATE_NOTE',
+        undo: { noteId: newNote.id },
+        redo: { noteId: newNote.id, fullState: newNote as Note },
+      });
+
       onCreateNote(newNote);
     },
-    [board.id, nodes.length, onCreateNote, getViewportCenter]
+    [board.id, nodes.length, onCreateNote, getViewportCenter, pushAction]
   );
 
   // Add new drawing at position
@@ -412,9 +589,16 @@ function CanvasInner({
         drawing_data: { strokes: [] },
       };
 
+      // Track history for undo
+      pushAction({
+        type: 'CREATE_NOTE',
+        undo: { noteId: newDrawing.id },
+        redo: { noteId: newDrawing.id, fullState: newDrawing as Note },
+      });
+
       onCreateNote(newDrawing);
     },
-    [board.id, nodes.length, onCreateNote, getViewportCenter]
+    [board.id, nodes.length, onCreateNote, getViewportCenter, pushAction]
   );
 
   // Zoom controls
@@ -437,6 +621,27 @@ function CanvasInner({
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         handleManualSave();
+        return;
+      }
+
+      // Handle Ctrl+Z / Cmd+Z for undo (allow even in inputs for consistency)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      // Handle Ctrl+Shift+Z / Cmd+Shift+Z for redo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      // Handle Ctrl+Y / Cmd+Y for redo (alternative)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedo();
         return;
       }
 
@@ -479,6 +684,8 @@ function CanvasInner({
   }, [
     handleAddNote,
     handleAddDrawing,
+    handleUndo,
+    handleRedo,
     handleZoomIn,
     handleZoomOut,
     handleFitView,
@@ -493,6 +700,7 @@ function CanvasInner({
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
+        onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
         onPaneClick={undefined}
         nodeTypes={nodeTypes}
@@ -531,6 +739,8 @@ function CanvasInner({
             zoom={zoom}
             showGrid={showGrid}
             activeTool={activeTool}
+            canUndo={canUndo()}
+            canRedo={canRedo()}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onFitView={handleFitView}
@@ -539,6 +749,8 @@ function CanvasInner({
             onToolChange={setActiveTool}
             onToggleGrid={() => setShowGrid(!showGrid)}
             onManualSave={handleManualSave}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
           />
         </Panel>
       </ReactFlow>

@@ -25,6 +25,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | Connections | P0 | Directional arrows between notes/drawings |
 | Canvas Navigation | P0 | Pan, zoom, fit-to-screen |
 | Auto-save | P0 | Save changes automatically |
+| Undo/Redo | P0 | Session-only history (30 actions), Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y. Tracks: create/move/resize notes, edit title/content, color changes, create connections |
 | Components | P1 | Basic variables (number, string, boolean) |
 | Component Panel | P1 | Floating panel to manage components |
 | @ References | P1 | Reference components in notes |
@@ -349,104 +350,105 @@ docs(api): update authentication endpoints
 
 ## 5. MVP Milestones
 
-### Phase 1: Project Setup (Week 1)
+### Phase 1: Project Setup (Week 1) ✅ COMPLETE
 
 #### 1.1 Initialize Project
 
-- [ ] Create Next.js 14 project with TypeScript
-- [ ] Configure Tailwind CSS
-- [ ] Install and configure shadcn/ui
-- [ ] Set up ESLint + Prettier
-- [ ] Configure Husky + lint-staged
-- [ ] Create folder structure
+- [x] Create Next.js 14 project with TypeScript
+- [x] Configure Tailwind CSS
+- [x] Install and configure shadcn/ui
+- [x] Set up ESLint + Prettier
+- [x] Configure Husky + lint-staged
+- [x] Create folder structure
 
 #### 1.2 Supabase Setup
 
-- [ ] Create Supabase project
-- [ ] Run database schema
-- [ ] Create storage buckets (avatars, thumbnails)
-- [ ] Install @supabase/supabase-js and @supabase/ssr
-- [ ] Create Supabase client utilities
+- [x] Create Supabase project
+- [x] Run database schema
+- [x] Create storage buckets (avatars, thumbnails, note-attachments)
+- [x] Install @supabase/supabase-js and @supabase/ssr
+- [x] Create Supabase client utilities (client.ts, server.ts, middleware.ts)
 
 ---
 
-### Phase 2: Authentication (Week 2)
+### Phase 2: Authentication (Week 2) ✅ COMPLETE
 
 #### 2.1 Auth Pages
 
-- [ ] Create `/login` page layout
-- [ ] Create `/register` page layout
-- [ ] Build LoginForm component
-- [ ] Build RegisterForm component
-- [ ] Add form validation (Zod + React Hook Form)
+- [x] Create `/login` page layout
+- [x] Create `/register` page layout
+- [x] Build LoginForm component
+- [x] Build RegisterForm component
+- [x] Add form validation (Zod + React Hook Form)
+- [x] Add animated background with floating orbs
 
 #### 2.2 Auth Logic
 
-- [ ] Implement email/password signup
-- [ ] Implement email/password login
-- [ ] Implement logout
-- [ ] Add Google OAuth button
-- [ ] Configure OAuth callback route
-- [ ] Create auth middleware (protect routes)
+- [x] Implement email/password signup
+- [x] Implement email/password login
+- [x] Implement logout
+- [x] Add Google OAuth button
+- [x] Configure OAuth callback route
+- [x] Create auth middleware (protect routes)
 
 #### 2.3 Session Management
 
-- [ ] Set up auth state listener
-- [ ] Create useUser hook
-- [ ] Handle auth redirects
-- [ ] Add loading states
+- [x] Set up auth state listener
+- [x] Create useUser hook (via userStore)
+- [x] Handle auth redirects
+- [x] Add loading states
 
 ---
 
-### Phase 3: User Profile (Week 3)
+### Phase 3: User Profile (Week 3) ✅ COMPLETE
 
 #### 3.1 Profile Setup
 
-- [ ] Create profile on signup (trigger)
-- [ ] Build ProfileForm component
-- [ ] Implement display name update
-- [ ] Add bio field
+- [x] Create profile on signup (trigger)
+- [x] Build ProfileForm component (in settings page)
+- [x] Implement display name update
+- [x] Add bio field
 
 #### 3.2 Avatar System
 
-- [ ] Integrate DiceBear library
-- [ ] Build AvatarPicker component
-- [ ] Style selector (8-10 styles)
-- [ ] Generate random seed
-- [ ] Save avatar preferences to DB
+- [x] Integrate DiceBear library
+- [x] Build AvatarPicker component
+- [x] Style selector (8-10 styles)
+- [x] Generate random seed
+- [x] Save avatar preferences to DB
 
 #### 3.3 Custom Avatar Upload
 
-- [ ] Create avatar upload component
-- [ ] Implement file validation (size, type)
-- [ ] Upload to Supabase Storage
-- [ ] Update profile with avatar URL
+- [x] Create avatar upload component
+- [x] Implement file validation (size, type)
+- [x] Upload to Supabase Storage
+- [x] Update profile with avatar URL
 
 ---
 
-### Phase 4: Story Management (Week 4)
+### Phase 4: Story Management (Week 4) ✅ COMPLETE
 
 #### 4.1 Story CRUD
 
-- [ ] Create story API/mutation
-- [ ] Implement createStory function
-- [ ] Implement updateStory function
-- [ ] Implement deleteStory function
-- [ ] Add confirmation dialog for delete
+- [x] Create story API/mutation
+- [x] Implement createStory function
+- [x] Implement updateStory function
+- [x] Implement deleteStory function
+- [x] Add confirmation dialog for delete
 
 #### 4.2 Dashboard UI
 
-- [ ] Build `/stories` page
-- [ ] Create StoryCard component
-- [ ] Build StoryGrid/StoryList view
-- [ ] Add "New Story" button + modal
-- [ ] Implement story rename inline edit
-- [ ] Add empty state
+- [x] Build `/stories` page
+- [x] Create StoryCard component
+- [x] Build StoryGrid/StoryList view
+- [x] Add "New Story" button + modal (CreateStoryDialog)
+- [x] Implement story rename inline edit
+- [x] Add empty state
 
 #### 4.3 Story Features
 
-- [ ] Add favorite toggle
-- [ ] Add archive functionality
+- [x] Add favorite toggle
+- [x] Add archive functionality
 - [ ] Implement search/filter
 - [ ] Add sort options (recent, name, created)
 
@@ -620,7 +622,21 @@ docs(api): update authentication endpoints
 
 - [ ] Set up Zustand boardStore
 - [ ] Sync React Flow state with store
-- [ ] Handle undo/redo (optional)
+- [x] Implement undo/redo (historyStore with 30-action session history)
+
+#### 11.1.1 Undo/Redo Implementation
+
+- [x] Create historyStore (Zustand) with past/future stacks
+- [x] Track CREATE_NOTE actions (note creation, drawing creation)
+- [x] Track MOVE_NOTE actions (drag start/stop position tracking)
+- [x] Track RESIZE_NOTE actions (resize start/end size tracking)
+- [x] Track UPDATE_NOTE actions (title edits, content edits, color changes)
+- [x] Track CREATE_CONNECTION actions
+- [x] Add keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y)
+- [x] Add toolbar buttons with disabled states
+- [ ] Track DELETE_NOTE actions (requires full state capture)
+- [ ] Track DELETE_CONNECTION actions
+- [ ] Track UPDATE_CONNECTION actions (color, style changes)
 
 #### 11.2 Auto-save
 

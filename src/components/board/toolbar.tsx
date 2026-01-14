@@ -14,6 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Pencil,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -24,6 +26,8 @@ interface ToolbarProps {
   zoom: number;
   showGrid: boolean;
   activeTool: 'select' | 'pan';
+  canUndo: boolean;
+  canRedo: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitView: () => void;
@@ -32,12 +36,16 @@ interface ToolbarProps {
   onToolChange: (tool: 'select' | 'pan') => void;
   onToggleGrid: () => void;
   onManualSave?: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
 export function Toolbar({
   zoom,
   showGrid,
   activeTool,
+  canUndo,
+  canRedo,
   onZoomIn,
   onZoomOut,
   onFitView,
@@ -46,6 +54,8 @@ export function Toolbar({
   onToolChange,
   onToggleGrid,
   onManualSave,
+  onUndo,
+  onRedo,
 }: ToolbarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -85,6 +95,39 @@ export function Toolbar({
             isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
           )}
         >
+          <Separator orientation="horizontal" className="w-6" />
+
+          {/* Undo/Redo */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onUndo}
+                disabled={!canUndo}
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Undo (Ctrl+Z)</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onRedo}
+                disabled={!canRedo}
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Redo (Ctrl+Shift+Z)</TooltipContent>
+          </Tooltip>
+
           <Separator orientation="horizontal" className="w-6" />
 
           {/* Tools */}
