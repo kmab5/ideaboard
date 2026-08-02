@@ -15,10 +15,15 @@ import {
   Type,
   ToggleLeft,
   List,
+  ChevronRight,
+  ChevronDown,
+  Pencil,
+  ArrowRight,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useComponentStore } from '@/lib/store';
-import type { Component, ComponentType as CompType } from '@/types/database';
+import type { Component, ComponentType as CompType, Note } from '@/types/database';
+import { noteReferencesComponent, renameReferenceInContent } from '@/lib/references';
 import {
   createComponentSchema,
   type CreateComponentInput,
@@ -55,7 +60,10 @@ import { toast } from 'sonner';
 interface ComponentPanelProps {
   storyId: string;
   components: Component[];
+  notes: Note[];
   onClose: () => void;
+  onFocusNote: (noteId: string) => void;
+  onUpdateNote: (id: string, updates: Partial<Note>) => void;
 }
 
 const TYPE_ICONS: Record<CompType, React.ReactNode> = {
@@ -72,7 +80,14 @@ const TYPE_COLORS: Record<CompType, string> = {
   list: 'bg-orange-100 text-orange-800',
 };
 
-export function ComponentPanel({ storyId, components, onClose }: ComponentPanelProps) {
+export function ComponentPanel({
+  storyId,
+  components,
+  notes,
+  onClose,
+  onFocusNote,
+  onUpdateNote,
+}: ComponentPanelProps) {
   const supabase = createClient();
   const {
     addComponent,
@@ -88,6 +103,9 @@ export function ComponentPanel({ storyId, components, onClose }: ComponentPanelP
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingComponent, setEditingComponent] = useState<Component | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [renamingComponent, setRenamingComponent] = useState<Component | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const {
     register,
@@ -170,6 +188,52 @@ export function ComponentPanel({ storyId, components, onClose }: ComponentPanelP
     } catch (error) {
       console.error('Error updating component:', error);
       toast.error('Failed to update component');
+    }
+  };
+
+  // Rename a component and propagate the change to every note that references
+  // it, so inline `{{name}}` tokens stay valid (PRD 4.6.4, rename propagation).
+  const handleRename = async (component: Component, rawName: string) => {
+    const newName = rawName.trim();
+    if (!newName || newName === component.name) {
+      setRenamingComponent(null);
+      return;
+    }
+    if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(newName)) {
+      toast.error('Use letters, numbers, and underscores (must start with a letter)');
+      return;
+    }
+    if (components.some((c) => c.id !== component.id && c.name.toLowerCase() === newName.toLowerCase())) {
+      toast.error('A component with that name already exists');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('components')
+        .update({ name: newName })
+        .eq('id', component.id);
+      if (error) throw error;
+
+      updateComponent(component.id, { name: newName });
+
+      // Update references in affected notes.
+      const affected = notes.filter((note) => noteReferencesComponent(note.content, component.name));
+      affected.forEach((note) => {
+        onUpdateNote(note.id, {
+          content: renameReferenceInContent(note.content, component.name, newName),
+        });
+      });
+
+      setRenamingComponent(null);
+      toast.success(
+        affected.length > 0
+          ? `Renamed and updated ${affected.length} reference${affected.length === 1 ? '' : 's'}`
+          : 'Component renamed'
+      );
+    } catch (error) {
+      console.error('Error renaming component:', error);
+      toast.error('Failed to rename component');
     }
   };
 
@@ -270,54 +334,110 @@ export function ComponentPanel({ storyId, components, onClose }: ComponentPanelP
             <p className="mt-1 text-xs">Create one to get started</p>
           </div>
         ) : (
-          filteredComponents.map((component) => (
-            <div
-              key={component.id}
-              className="rounded-lg border bg-card p-3 transition-shadow hover:shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge className={cn('px-1', TYPE_COLORS[component.type])}>
-                    {TYPE_ICONS[component.type]}
-                  </Badge>
-                  <span className="font-mono text-sm font-medium">@{component.name}</span>
+          filteredComponents.map((component) => {
+            const referencingNotes = notes.filter((note) =>
+              noteReferencesComponent(note.content, component.name)
+            );
+            const isExpanded = expandedId === component.id;
+
+            return (
+              <div
+                key={component.id}
+                className="rounded-lg border bg-card p-3 transition-shadow hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge className={cn('px-1', TYPE_COLORS[component.type])}>
+                      {TYPE_ICONS[component.type]}
+                    </Badge>
+                    <span className="font-mono text-sm font-medium">@{component.name}</span>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <MoreHorizontal className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditingComponent(component)}>
+                        <Edit2 className="mr-2 h-4 w-4" />
+                        Edit value
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setRenameValue(component.name);
+                          setRenamingComponent(component);
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleReset(component.id)}>
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Reset to Default
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDelete(component.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                      <MoreHorizontal className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setEditingComponent(component)}>
-                      <Edit2 className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleReset(component.id)}>
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Reset to Default
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => handleDelete(component.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
 
-              {component.description && (
-                <p className="mt-1 text-xs text-muted-foreground">{component.description}</p>
-              )}
+                {component.description && (
+                  <p className="mt-1 text-xs text-muted-foreground">{component.description}</p>
+                )}
 
-              <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Current:</span>
-                <span className="font-mono">{formatValue(component.current_value)}</span>
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Current:</span>
+                  <span className="font-mono">{formatValue(component.current_value)}</span>
+                </div>
+
+                {/* Usage tracking (PRD 4.6.4): where this component is referenced. */}
+                <div className="mt-2 border-t pt-2">
+                  {referencingNotes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Not referenced yet</p>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(isExpanded ? null : component.id)}
+                        className="flex w-full items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-3 w-3" />
+                        ) : (
+                          <ChevronRight className="h-3 w-3" />
+                        )}
+                        Used in {referencingNotes.length} note
+                        {referencingNotes.length === 1 ? '' : 's'}
+                      </button>
+
+                      {isExpanded && (
+                        <ul className="mt-1 space-y-0.5">
+                          {referencingNotes.map((note) => (
+                            <li key={note.id}>
+                              <button
+                                type="button"
+                                onClick={() => onFocusNote(note.id)}
+                                className="group flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-xs hover:bg-accent"
+                              >
+                                <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{note.title || 'Untitled note'}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -481,6 +601,40 @@ export function ComponentPanel({ storyId, components, onClose }: ComponentPanelP
 
             <DialogFooter>
               <Button onClick={() => setEditingComponent(null)}>Done</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Rename Dialog */}
+      {renamingComponent && (
+        <Dialog open={!!renamingComponent} onOpenChange={() => setRenamingComponent(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename Component</DialogTitle>
+              <DialogDescription>
+                References in notes will be updated automatically.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-2 py-4">
+              <Label htmlFor="rename-input">Name</Label>
+              <Input
+                id="rename-input"
+                value={renameValue}
+                autoFocus
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRename(renamingComponent, renameValue);
+                }}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRenamingComponent(null)}>
+                Cancel
+              </Button>
+              <Button onClick={() => handleRename(renamingComponent, renameValue)}>Rename</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -17,6 +17,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
   title: 'IdeaBoard - Visual Whiteboard for Ideas',
   description:
     'Organize your ideas visually with IdeaBoard. Create infinite canvases, connect notes, and build interactive narratives.',

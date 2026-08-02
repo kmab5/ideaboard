@@ -1,33 +1,13 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { createAvatar } from '@dicebear/core';
-import {
-  adventurer,
-  avataaars,
-  bottts,
-  funEmoji,
-  lorelei,
-  micah,
-  miniavs,
-  personas,
-} from '@dicebear/collection';
 import { RefreshCw, Check, Upload, Loader2 } from 'lucide-react';
 import type { DicebearStyle, AvatarType } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const DICEBEAR_STYLES: { value: DicebearStyle; label: string; style: unknown }[] = [
-  { value: 'adventurer', label: 'Adventurer', style: adventurer },
-  { value: 'avataaars', label: 'Avataaars', style: avataaars },
-  { value: 'bottts', label: 'Bottts', style: bottts },
-  { value: 'fun-emoji', label: 'Fun Emoji', style: funEmoji },
-  { value: 'lorelei', label: 'Lorelei', style: lorelei },
-  { value: 'micah', label: 'Micah', style: micah },
-  { value: 'miniavs', label: 'Miniavs', style: miniavs },
-  { value: 'personas', label: 'Personas', style: personas },
-];
+import { DICEBEAR_STYLES, generateAvatarSeed, generateDicebearDataUri } from '@/lib/avatar';
+import { ALLOWED_IMAGE_TYPES, AVATAR_MAX_BYTES, MB } from '@/lib/upload';
 
 interface AvatarPickerProps {
   currentStyle: DicebearStyle;
@@ -49,31 +29,19 @@ export function AvatarPicker({
   isLoading = false,
 }: AvatarPickerProps) {
   const [selectedStyle, setSelectedStyle] = useState<DicebearStyle>(currentStyle);
-  const [seed, setSeed] = useState(currentSeed || generateSeed());
+  const [seed, setSeed] = useState(currentSeed || generateAvatarSeed());
   const [activeTab, setActiveTab] = useState<string>(
     avatarType === 'custom' ? 'upload' : 'generate'
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function generateSeed(): string {
-    return Math.random().toString(36).substring(2, 15);
-  }
-
-  const generateAvatar = useCallback((style: DicebearStyle, avatarSeed: string) => {
-    const styleConfig = DICEBEAR_STYLES.find((s) => s.value === style);
-    if (!styleConfig) return '';
-
-    const avatar = createAvatar(styleConfig.style as Parameters<typeof createAvatar>[0], {
-      seed: avatarSeed,
-      size: 128,
-    });
-
-    return avatar.toDataUri();
-  }, []);
+  const generateAvatar = useCallback(
+    (style: DicebearStyle, avatarSeed: string) => generateDicebearDataUri(style, avatarSeed),
+    []
+  );
 
   const handleRandomize = useCallback(() => {
-    const newSeed = generateSeed();
-    setSeed(newSeed);
+    setSeed(generateAvatarSeed());
   }, []);
 
   const handleStyleSelect = useCallback((style: DicebearStyle) => {
@@ -202,13 +170,15 @@ export function AvatarPicker({
             ref={fileInputRef}
             type="file"
             title="Upload avatar"
-            accept="image/png,image/jpeg,image/jpg"
+            accept={ALLOWED_IMAGE_TYPES.join(',')}
             onChange={handleFileChange}
             className="hidden"
           />
           <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
           <p className="mt-2 text-sm font-medium">Click to upload</p>
-          <p className="mt-1 text-xs text-muted-foreground">PNG or JPG (max 512KB)</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            PNG, JPG, WebP, or GIF (max {Math.round(AVATAR_MAX_BYTES / MB)}MB)
+          </p>
         </div>
 
         {isLoading && (

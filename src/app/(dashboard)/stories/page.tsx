@@ -6,6 +6,7 @@ import { Search, Filter, SortAsc, SortDesc, FolderOpen, Sparkles, BookOpen } fro
 import { createClient } from '@/lib/supabase/client';
 import { useStoryStore, useUserStore } from '@/lib/store';
 import type { CreateStoryInput } from '@/lib/validations';
+import { ensureProfile } from '@/lib/profile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -58,42 +59,7 @@ export default function StoriesPage() {
 
         setUser({ id: authUser.id, email: authUser.email! });
 
-        // Fetch profile
-        let { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
-
-        // If no profile exists, create one
-        if (!profile) {
-          const displayName =
-            authUser.user_metadata?.display_name ||
-            authUser.user_metadata?.name ||
-            authUser.email?.split('@')[0] ||
-            'User';
-
-          const seed = authUser.id;
-          const avatarUrl = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`;
-
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              id: authUser.id,
-              display_name: displayName,
-              avatar_type: 'dicebear',
-              dicebear_style: 'adventurer',
-              dicebear_seed: seed,
-              avatar_url: avatarUrl,
-            })
-            .select()
-            .single();
-
-          if (!createError && newProfile) {
-            profile = newProfile;
-          }
-        }
-
+        const profile = await ensureProfile(supabase, authUser);
         if (profile) {
           setProfile(profile);
         }

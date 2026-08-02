@@ -27,6 +27,14 @@ import { Toolbar } from './toolbar';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useHistoryStore } from '@/lib/store';
+import { validateImageFile, safeExtensionForType, NOTE_IMAGE_MAX_BYTES } from '@/lib/upload';
+import {
+  NOTE_COLOR_VALUES,
+  CONNECTION_COLORS,
+  DEFAULT_NOTE_SIZE,
+  DEFAULT_DRAWING_SIZE,
+  randomFrom,
+} from '@/lib/constants';
 
 // Custom node types - memoized to prevent recreation warnings
 const defaultNodeTypes = {
@@ -50,6 +58,8 @@ interface CanvasProps {
   onDeleteConnection: (id: string) => void;
   onCreateConnection: (connection: Partial<Connection>) => void;
   onUpdateViewport: (x: number, y: number, zoom: number) => void;
+  /** When set, pan to and select this note (e.g. from the component panel). */
+  focusNoteId?: string | null;
 }
 
 // Inner component that uses the React Flow hooks
@@ -64,6 +74,7 @@ function CanvasInner({
   onDeleteConnection,
   onCreateConnection,
   onUpdateViewport,
+  focusNoteId,
 }: CanvasProps) {
   // Track if initial load is complete
   const isInitializedRef = useRef(false);
@@ -77,13 +88,20 @@ function CanvasInner({
   // Handle image upload to Supabase Storage
   const handleImageUpload = useCallback(
     async (noteId: string, file: File): Promise<string | null> => {
+      // Validate before touching the network. Bucket-level limits must mirror this.
+      const validation = validateImageFile(file, NOTE_IMAGE_MAX_BYTES);
+      if (!validation.valid) {
+        toast.error(validation.error ?? 'Invalid image');
+        return null;
+      }
+
       try {
-        const fileExt = file.name.split('.').pop();
+        const fileExt = safeExtensionForType(file.type);
         const fileName = `${board.id}/${noteId}/${Date.now()}.${fileExt}`;
 
         const { data, error } = await supabase.storage
           .from('note-attachments')
-          .upload(fileName, file);
+          .upload(fileName, file, { contentType: file.type });
 
         if (error) throw error;
 
@@ -338,23 +356,40 @@ function CanvasInner({
         return [...currentNodes, ...notesToNodes(newNotes)];
       }
 
-      // Update data prop for existing nodes (but not position - position flows from UI to DB)
+      // Update existing nodes from persisted state.
       return currentNodes.map((node) => {
         const noteData = notes.find((n) => n.id === node.id);
-        if (noteData) {
-          return {
-            ...node,
-            type: noteData.type === 'drawing' ? 'drawingNode' : 'noteNode',
-            data: {
-              note: noteData,
-              onUpdate: onUpdateNote,
-              onDelete: onDeleteNote,
-              onImageUpload: noteData.type === 'drawing' ? undefined : handleImageUpload,
-            },
-            draggable: !noteData.is_locked,
-          };
-        }
-        return node;
+        if (!noteData) return node;
+
+        // Sync position/size back from state (e.g. after undo/redo) unless the
+        // node is being actively manipulated, so we never fight a live drag.
+        const isInteracting =
+          node.dragging === true || (node as { resizing?: boolean }).resizing === true;
+
+        const positionChanged =
+          node.position.x !== noteData.position_x || node.position.y !== noteData.position_y;
+        const sizeChanged =
+          node.style?.width !== noteData.width || node.style?.height !== noteData.height;
+
+        return {
+          ...node,
+          type: noteData.type === 'drawing' ? 'drawingNode' : 'noteNode',
+          position:
+            !isInteracting && positionChanged
+              ? { x: noteData.position_x, y: noteData.position_y }
+              : node.position,
+          style:
+            !isInteracting && sizeChanged
+              ? { ...node.style, width: noteData.width, height: noteData.height }
+              : node.style,
+          data: {
+            note: noteData,
+            onUpdate: onUpdateNote,
+            onDelete: onDeleteNote,
+            onImageUpload: noteData.type === 'drawing' ? undefined : handleImageUpload,
+          },
+          draggable: !noteData.is_locked,
+        };
       });
     });
 
@@ -405,6 +440,23 @@ function CanvasInner({
       return currentEdges.filter((edge) => connIds.has(edge.id));
     });
   }, [connections, connectionsToEdges, setEdges, onUpdateConnection, onDeleteConnection, showGrid]);
+
+  // Pan to and select a note when asked (e.g. from the component panel's
+  // "used in" list). focusNoteId is cleared by the parent after each request.
+  useEffect(() => {
+    if (!focusNoteId) return;
+    const note = notes.find((n) => n.id === focusNoteId);
+    if (!note) return;
+
+    const centerX = note.position_x + (note.width ?? DEFAULT_NOTE_SIZE.width) / 2;
+    const centerY = note.position_y + (note.height ?? DEFAULT_NOTE_SIZE.height) / 2;
+    reactFlowInstance.setCenter(centerX, centerY, { zoom: 1, duration: 400 });
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({ ...node, selected: node.id === focusNoteId }))
+    );
+    // Only react to focus requests, not every notes change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNoteId]);
 
   // Handle node changes (position updates during drag)
   const handleNodesChange = useCallback(
@@ -461,18 +513,7 @@ function CanvasInner({
       const sourceAnchor = params.sourceHandle?.replace('-source', '') || 'bottom';
 
       // Random color for new connections
-      const connectionColors = [
-        '#6b7280',
-        '#ef4444',
-        '#f97316',
-        '#eab308',
-        '#22c55e',
-        '#3b82f6',
-        '#8b5cf6',
-        '#ec4899',
-      ];
-      const randomConnectionColor =
-        connectionColors[Math.floor(Math.random() * connectionColors.length)];
+      const randomConnectionColor = randomFrom(CONNECTION_COLORS);
 
       const newConnection: Partial<Connection> = {
         id: uuidv4(),
@@ -502,21 +543,18 @@ function CanvasInner({
 
   // Get the center of the current viewport in flow coordinates
   const getViewportCenter = useCallback(() => {
-    const viewport = reactFlowInstance.getViewport();
+    const container = document.querySelector('.react-flow');
+    const rect = container?.getBoundingClientRect();
+    const screenX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const screenY = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
 
-    // Get the container dimensions from the React Flow wrapper
-    const flowContainer = document.querySelector('.react-flow');
-    const width = flowContainer?.clientWidth || window.innerWidth;
-    const height = flowContainer?.clientHeight || window.innerHeight;
-
-    // Convert screen center to flow coordinates
-    const centerX = (-viewport.x + width / 2) / viewport.zoom;
-    const centerY = (-viewport.y + height / 2) / viewport.zoom;
+    // Convert screen center to flow coordinates via React Flow's own transform.
+    const center = reactFlowInstance.screenToFlowPosition({ x: screenX, y: screenY });
 
     // Add small random offset to prevent stacking
     return {
-      x: centerX + (Math.random() - 0.5) * 50,
-      y: centerY + (Math.random() - 0.5) * 50,
+      x: center.x + (Math.random() - 0.5) * 50,
+      y: center.y + (Math.random() - 0.5) * 50,
     };
   }, [reactFlowInstance]);
 
@@ -526,18 +564,7 @@ function CanvasInner({
       const pos = position || getViewportCenter();
 
       // Random color for new notes
-      const noteColors = [
-        '#FFFFFF',
-        '#FFF9C4',
-        '#FFCCBC',
-        '#F8BBD9',
-        '#E1BEE7',
-        '#C5CAE9',
-        '#BBDEFB',
-        '#B2DFDB',
-        '#C8E6C9',
-      ];
-      const randomNoteColor = noteColors[Math.floor(Math.random() * noteColors.length)];
+      const randomNoteColor = randomFrom(NOTE_COLOR_VALUES);
 
       const newNote: Partial<Note> = {
         id: uuidv4(),
@@ -547,8 +574,8 @@ function CanvasInner({
         content: { blocks: [] },
         position_x: pos.x,
         position_y: pos.y,
-        width: 200,
-        height: 150,
+        width: DEFAULT_NOTE_SIZE.width,
+        height: DEFAULT_NOTE_SIZE.height,
         color: randomNoteColor,
         is_collapsed: false,
         is_locked: false,
@@ -580,8 +607,8 @@ function CanvasInner({
         content: { blocks: [] },
         position_x: pos.x,
         position_y: pos.y,
-        width: 300,
-        height: 200,
+        width: DEFAULT_DRAWING_SIZE.width,
+        height: DEFAULT_DRAWING_SIZE.height,
         color: '#FFFFFF',
         is_collapsed: false,
         is_locked: false,

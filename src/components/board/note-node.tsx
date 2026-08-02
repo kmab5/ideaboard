@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useCallback, useEffect, useRef } from 'react';
+import { memo, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Handle, Position, type NodeProps, NodeResizer } from 'reactflow';
 import {
   GripVertical,
@@ -28,7 +28,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { MarkdownRenderer } from '@/components/common';
-import { useHistoryStore } from '@/lib/store';
+import { useHistoryStore, useComponentStore } from '@/lib/store';
+import { NOTE_COLORS, NOTE_COLOR_BG, MIN_NOTE_SIZE, DOUBLE_TAP_DELAY_MS } from '@/lib/constants';
+import { ComponentAutocompleteTextarea } from './component-autocomplete';
 
 interface NoteNodeData {
   note: Note;
@@ -37,18 +39,7 @@ interface NoteNodeData {
   onImageUpload?: (noteId: string, file: File) => Promise<string | null>;
 }
 
-// Available note colors
-const NOTE_COLORS = [
-  { value: '#FFFFFF', label: 'White', bg: 'bg-white' },
-  { value: '#FFF9C4', label: 'Yellow', bg: 'bg-yellow-100' },
-  { value: '#FFCCBC', label: 'Orange', bg: 'bg-orange-100' },
-  { value: '#F8BBD9', label: 'Pink', bg: 'bg-pink-100' },
-  { value: '#E1BEE7', label: 'Purple', bg: 'bg-purple-100' },
-  { value: '#C5CAE9', label: 'Indigo', bg: 'bg-indigo-100' },
-  { value: '#BBDEFB', label: 'Blue', bg: 'bg-blue-100' },
-  { value: '#B2DFDB', label: 'Teal', bg: 'bg-teal-100' },
-  { value: '#C8E6C9', label: 'Green', bg: 'bg-green-100' },
-];
+// Available note colors are centralized in @/lib/constants (NOTE_COLORS).
 
 // Helper to extract text content from blocks
 const getTextContent = (noteContent: Note['content']): string => {
@@ -77,6 +68,13 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
 
   // History tracking
   const { pushAction, isUndoingOrRedoing } = useHistoryStore();
+  // Component references: resolve `{{name}}` chips and open the panel on click.
+  const components = useComponentStore((s) => s.components);
+  const setPanelOpen = useComponentStore((s) => s.setPanelOpen);
+  const autocompleteComponents = useMemo(
+    () => components.map((c) => ({ id: c.id, name: c.name, type: c.type })),
+    [components]
+  );
   const editStartStateRef = useRef<{ title: string; content: Note['content'] } | null>(null);
   const resizeStartRef = useRef<{ width: number; height: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +112,6 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
   // Touch double-tap detection refs
   const lastTitleTapRef = useRef<number>(0);
   const lastContentTapRef = useRef<number>(0);
-  const DOUBLE_TAP_DELAY = 350; // ms - slightly longer for better detection
 
   const handleTitleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -131,7 +128,7 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
   const handleTitleTouchStart = useCallback((e: React.TouchEvent) => {
     // Don't stop propagation on start - just track
     const now = Date.now();
-    if (now - lastTitleTapRef.current < DOUBLE_TAP_DELAY) {
+    if (now - lastTitleTapRef.current < DOUBLE_TAP_DELAY_MS) {
       // Prevent default to stop potential zoom/selection
       e.preventDefault();
     }
@@ -140,7 +137,7 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
   const handleTitleTouchEnd = useCallback(
     (e: React.TouchEvent) => {
       const now = Date.now();
-      if (now - lastTitleTapRef.current < DOUBLE_TAP_DELAY) {
+      if (now - lastTitleTapRef.current < DOUBLE_TAP_DELAY_MS) {
         // Double tap detected
         e.preventDefault();
         e.stopPropagation();
@@ -172,7 +169,7 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
   const handleContentTouchStart = useCallback((e: React.TouchEvent) => {
     // Don't stop propagation on start - just track
     const now = Date.now();
-    if (now - lastContentTapRef.current < DOUBLE_TAP_DELAY) {
+    if (now - lastContentTapRef.current < DOUBLE_TAP_DELAY_MS) {
       // Prevent default to stop potential zoom/selection
       e.preventDefault();
     }
@@ -181,7 +178,7 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
   const handleContentTouchEnd = useCallback(
     (e: React.TouchEvent) => {
       const now = Date.now();
-      if (now - lastContentTapRef.current < DOUBLE_TAP_DELAY) {
+      if (now - lastContentTapRef.current < DOUBLE_TAP_DELAY_MS) {
         // Double tap detected
         e.preventDefault();
         e.stopPropagation();
@@ -278,12 +275,6 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
     [handleTitleBlur]
   );
 
-  const handleContentKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setIsEditingContent(false);
-    }
-  }, []);
-
   const toggleLock = useCallback(() => {
     onUpdate(note.id, { is_locked: !note.is_locked });
   }, [note.id, note.is_locked, onUpdate]);
@@ -376,19 +367,7 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
     [note.id, images, content, onUpdate, buildContentBlocks]
   );
 
-  const noteColors: Record<string, string> = {
-    '#FFFFFF': 'bg-white',
-    '#FFF9C4': 'bg-yellow-100',
-    '#FFCCBC': 'bg-orange-100',
-    '#F8BBD9': 'bg-pink-100',
-    '#E1BEE7': 'bg-purple-100',
-    '#C5CAE9': 'bg-indigo-100',
-    '#BBDEFB': 'bg-blue-100',
-    '#B2DFDB': 'bg-teal-100',
-    '#C8E6C9': 'bg-green-100',
-  };
-
-  const bgClass = noteColors[note.color] || 'bg-white';
+  const bgClass = NOTE_COLOR_BG[note.color] || 'bg-white';
 
   return (
     <>
@@ -404,8 +383,8 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
 
       {/* Node Resizer - smaller handles to avoid touch conflicts */}
       <NodeResizer
-        minWidth={150}
-        minHeight={100}
+        minWidth={MIN_NOTE_SIZE.width}
+        minHeight={MIN_NOTE_SIZE.height}
         isVisible={selected && !note.is_locked}
         lineClassName="!border-primary !border-[1px]"
         handleClassName="!h-2 !w-2 !border-2 !border-primary !bg-background !rounded-sm"
@@ -612,21 +591,24 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
           onTouchEnd={handleContentTouchEnd}
         >
           {isEditingContent ? (
-            <textarea
+            <ComponentAutocompleteTextarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               onBlur={handleContentBlur}
-              onKeyDown={handleContentKeyDown}
+              onEscape={() => setIsEditingContent(false)}
+              components={autocompleteComponents}
               className="h-full w-full resize-none bg-transparent text-sm text-gray-900 focus:outline-none"
-              style={{ minHeight: 'calc(100% - 8px)' }}
-              placeholder="Type your note here... Supports **Markdown**! Use {{variable}} for references"
+              placeholder="Type your note... **Markdown** supported. Type @ to reference a component."
               autoFocus
-              onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <div className="cursor-text text-sm text-gray-900">
               {content ? (
-                <MarkdownRenderer content={content} />
+                <MarkdownRenderer
+                  content={content}
+                  components={components}
+                  onReferenceClick={() => setPanelOpen(true)}
+                />
               ) : (
                 <span className="italic text-gray-500">Double-tap to edit...</span>
               )}

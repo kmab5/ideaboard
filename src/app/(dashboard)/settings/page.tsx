@@ -8,6 +8,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useUserStore } from '@/lib/store';
 import { profileUpdateSchema, type ProfileUpdateInput } from '@/lib/validations';
 import type { DicebearStyle } from '@/types/database';
+import { generateDicebearDataUri } from '@/lib/avatar';
+import { validateImageFile, safeExtensionForType, AVATAR_MAX_BYTES } from '@/lib/upload';
+import { ensureProfile } from '@/lib/profile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,41 +51,7 @@ export default function SettingsPage() {
           setUser({ id: authUser.id, email: authUser.email! });
           setIsEmailVerified(authUser.email_confirmed_at != null);
 
-          let { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', authUser.id)
-            .single();
-
-          // If no profile exists, create one
-          if (!profileData) {
-            const displayName =
-              authUser.user_metadata?.display_name ||
-              authUser.user_metadata?.name ||
-              authUser.email?.split('@')[0] ||
-              'User';
-
-            const seed = authUser.id;
-            const avatarUrl = `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`;
-
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                id: authUser.id,
-                display_name: displayName,
-                avatar_type: 'dicebear',
-                dicebear_style: 'adventurer',
-                dicebear_seed: seed,
-                avatar_url: avatarUrl,
-              })
-              .select()
-              .single();
-
-            if (!createError && newProfile) {
-              profileData = newProfile;
-            }
-          }
-
+          const profileData = await ensureProfile(supabase, authUser);
           if (profileData) {
             setProfile(profileData);
             reset({
@@ -134,7 +103,7 @@ export default function SettingsPage() {
   const handleAvatarSelect = async (style: DicebearStyle, seed: string) => {
     if (!user) return;
 
-    const avatarUrl = `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
+    const avatarUrl = generateDicebearDataUri(style, seed);
 
     setIsLoading(true);
     try {
@@ -170,22 +139,18 @@ export default function SettingsPage() {
   const handleCustomAvatarUpload = async (file: File) => {
     if (!user) return;
 
-    // Validate file
-    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-      toast.error('Only PNG and JPG images are allowed');
-      return;
-    }
-
-    if (file.size > 512 * 1024) {
-      toast.error('Image must be less than 512KB');
+    // Validate file (bucket-level limits must mirror this).
+    const validation = validateImageFile(file, AVATAR_MAX_BYTES);
+    if (!validation.valid) {
+      toast.error(validation.error ?? 'Invalid image');
       return;
     }
 
     setIsLoading(true);
     try {
       // Upload to Supabase Storage
-      // Path format: {user_id}/avatar.{ext} - matches storage policy
-      const fileExt = file.name.split('.').pop();
+      // Path format: {user_id}/avatar-{timestamp}.{ext} - matches storage policy
+      const fileExt = safeExtensionForType(file.type);
       const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, {

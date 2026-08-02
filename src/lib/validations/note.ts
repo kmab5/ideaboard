@@ -4,7 +4,7 @@ import { z } from 'zod';
 // NOTE VALIDATION SCHEMAS
 // =============================================================================
 
-export const noteTypeSchema = z.enum(['normal', 'conditional', 'technical']);
+export const noteTypeSchema = z.enum(['normal', 'drawing', 'conditional', 'technical']);
 
 export const noteContentBlockSchema = z.object({
   type: z.string(),
