@@ -37,3 +37,26 @@ export function sanitizeRedirectPath(
 
   return next;
 }
+
+/**
+ * Resolve the site's base URL for absolute links / Open Graph metadata.
+ *
+ * Accepts values with or without a scheme (Vercel's `VERCEL_URL` and many
+ * hand-set env vars are bare hosts like "example.vercel.app"), normalizes to
+ * an absolute URL, and falls back to localhost if the value can't be parsed —
+ * so a misconfigured env var never breaks the build.
+ */
+export function getSiteUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
+    'http://localhost:3000';
+
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+
+  try {
+    return new URL(withScheme).toString();
+  } catch {
+    return 'http://localhost:3000';
+  }
+}

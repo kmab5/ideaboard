@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { sanitizeRedirectPath } from './navigation';
+import { describe, it, expect, afterEach } from 'vitest';
+import { sanitizeRedirectPath, getSiteUrl } from './navigation';
 
 describe('sanitizeRedirectPath', () => {
   it('allows simple same-origin paths', () => {
@@ -41,5 +41,37 @@ describe('sanitizeRedirectPath', () => {
   it('rejects control characters', () => {
     expect(sanitizeRedirectPath('/foo\nbar')).toBe('/stories');
     expect(sanitizeRedirectPath('/foo\u0000bar')).toBe('/stories');
+  });
+});
+
+describe('getSiteUrl', () => {
+  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const originalVercelUrl = process.env.VERCEL_URL;
+
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
+    process.env.VERCEL_URL = originalVercelUrl;
+  });
+
+  it('adds a scheme to a bare host (the Vercel misconfig case)', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'ideaboard-cs.vercel.app';
+    expect(getSiteUrl()).toBe('https://ideaboard-cs.vercel.app/');
+  });
+
+  it('preserves an explicit scheme', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://example.com';
+    expect(getSiteUrl()).toBe('https://example.com/');
+  });
+
+  it('falls back to VERCEL_URL when APP_URL is unset', () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    process.env.VERCEL_URL = 'preview-abc.vercel.app';
+    expect(getSiteUrl()).toBe('https://preview-abc.vercel.app/');
+  });
+
+  it('falls back to localhost when nothing is set', () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.VERCEL_URL;
+    expect(getSiteUrl()).toBe('http://localhost:3000/');
   });
 });

@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import { ThemeProvider } from 'next-themes';
 import { Analytics } from '@vercel/analytics/next';
 import { Toaster } from '@/components/ui/sonner';
+import { getSiteUrl } from '@/lib/navigation';
 import './globals.css';
 
 const geistSans = localFont({
@@ -17,7 +18,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(getSiteUrl()),
   title: 'IdeaBoard - Visual Whiteboard for Ideas',
   description:
     'Organize your ideas visually with IdeaBoard. Create infinite canvases, connect notes, and build interactive narratives.',
