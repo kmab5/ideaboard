@@ -2,11 +2,30 @@
   "name": "ideaboard",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx,json,css,md,mjs,cjs}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@dicebear/collection": "^9.2.4",
@@ -25,13 +44,12 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.90.13",
-    "@types/uuid": "^11.0.0",
     "@vercel/analytics": "^1.6.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
-    "next": "14.2.35",
+    "next": "15.5.22",
     "next-themes": "^0.4.6",
     "react": "^18",
     "react-dom": "^18",
@@ -42,7 +60,6 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
-    "tldraw": "^4.2.2",
     "uuid": "^13.0.0",
     "zod": "^4.2.1",
     "zustand": "^5.0.9"
@@ -52,8 +69,9 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^8",
-    "eslint-config-next": "14.2.35",
+    "eslint-config-next": "15.5.22",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "postcss": "^8",
@@ -61,6 +79,6 @@
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.10"
   }
 }
