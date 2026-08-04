@@ -24,6 +24,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useComponentStore } from '@/lib/store';
 import type { Component, ComponentType as CompType, Note } from '@/types/database';
 import { noteReferencesComponent, renameReferenceInContent } from '@/lib/references';
+import { ListChoicesEditor } from './list-choices-editor';
 import {
   createComponentSchema,
   type CreateComponentInput,
@@ -274,7 +275,8 @@ export function ComponentPanel({
   const formatValue = (value: unknown): string => {
     if (value === null || value === undefined) return 'null';
     if (typeof value === 'boolean') return value ? 'true' : 'false';
-    if (Array.isArray(value)) return `[${value.length} items]`;
+    if (Array.isArray(value))
+      return value.length ? value.map((v) => String(v)).join(', ') : 'empty';
     return String(value);
   };
 
@@ -391,10 +393,31 @@ export function ComponentPanel({
                   <p className="mt-1 text-xs text-muted-foreground">{component.description}</p>
                 )}
 
-                <div className="mt-2 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Current:</span>
-                  <span className="font-mono">{formatValue(component.current_value)}</span>
-                </div>
+                {component.type === 'list' ? (
+                  <div className="mt-2 text-xs">
+                    <span className="text-muted-foreground">Choices:</span>
+                    {Array.isArray(component.current_value) &&
+                    component.current_value.length > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {(component.current_value as (string | number | boolean)[]).map((choice, i) => (
+                          <span
+                            key={i}
+                            className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.7rem]"
+                          >
+                            {String(choice)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="ml-1 text-muted-foreground">none yet</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Current:</span>
+                    <span className="font-mono">{formatValue(component.current_value)}</span>
+                  </div>
+                )}
 
                 {/* Usage tracking (PRD 4.6.4): where this component is referenced. */}
                 <div className="mt-2 border-t pt-2">
@@ -516,15 +539,9 @@ export function ComponentPanel({
                   </Select>
                 )}
                 {selectedType === 'list' && (
-                  <Input
-                    id="default_value"
-                    placeholder="item1, item2, item3"
-                    onChange={(e) =>
-                      setValue(
-                        'default_value',
-                        e.target.value.split(',').map((s) => s.trim())
-                      )
-                    }
+                  <ListChoicesEditor
+                    value={(watch('default_value') as (string | number | boolean)[]) || []}
+                    onChange={(next) => setValue('default_value', next)}
                   />
                 )}
               </div>
@@ -557,7 +574,7 @@ export function ComponentPanel({
               </div>
 
               <div className="space-y-2">
-                <Label>Current Value</Label>
+                <Label>{editingComponent.type === 'list' ? 'Choices' : 'Current Value'}</Label>
                 {editingComponent.type === 'number' && (
                   <Input
                     type="number"
@@ -595,6 +612,26 @@ export function ComponentPanel({
                       <SelectItem value="false">False</SelectItem>
                     </SelectContent>
                   </Select>
+                )}
+                {editingComponent.type === 'list' && (
+                  <>
+                    <ListChoicesEditor
+                      key={editingComponent.id}
+                      value={
+                        Array.isArray(editingComponent.current_value)
+                          ? (editingComponent.current_value as (string | number | boolean)[])
+                          : []
+                      }
+                      onChange={(next) =>
+                        handleUpdate(editingComponent.id, { current_value: next })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      These are the possible values for @{editingComponent.name}. Reference them from
+                      a note with{' '}
+                      <span className="font-mono">{`{{${editingComponent.name}}}`}</span>.
+                    </p>
+                  </>
                 )}
               </div>
             </div>

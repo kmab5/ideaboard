@@ -1,0 +1,326 @@
+import Link from 'next/link';
+import { ArrowLeft, Keyboard, Lightbulb } from 'lucide-react';
+import { SiteHeader, SiteFooter } from '@/components/marketing';
+import { APP_VERSION } from '@/lib/version';
+
+export const metadata = {
+  title: 'Guide | IdeaBoard',
+  description: 'Learn how to use IdeaBoard: notes, connections, components, references, and more.',
+};
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs font-medium">
+      {children}
+    </kbd>
+  );
+}
+
+function Tip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-4 flex gap-3 rounded-lg border border-border/70 bg-muted/40 p-3 text-sm">
+      <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+      <p className="text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
+const sections = [
+  {
+    id: 'getting-started',
+    heading: 'Getting started',
+    body: (
+      <>
+        <p>
+          IdeaBoard organizes a story as <strong>Story → Board → Notes</strong>. Create an account,
+          then create your first story from the dashboard — it opens onto an infinite canvas where
+          all your work happens.
+        </p>
+        <ul>
+          <li>
+            <strong>Sign up</strong> with email and password, or continue with Google.
+          </li>
+          <li>
+            <strong>New story</strong> from the dashboard gives you a fresh board.
+          </li>
+          <li>Every board autosaves as you work — there is no save button to remember.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: 'canvas',
+    heading: 'The canvas',
+    body: (
+      <>
+        <p>The board is an infinite canvas you can move around freely.</p>
+        <ul>
+          <li>
+            <strong>Pan:</strong> drag empty space, or scroll.
+          </li>
+          <li>
+            <strong>Zoom:</strong> pinch, or <Kbd>Ctrl</Kbd> + scroll. Controls sit in the corner.
+          </li>
+          <li>
+            <strong>Fit to screen</strong> recenters everything you&apos;ve made.
+          </li>
+          <li>
+            The toolbar adds notes, drawings, and connections, and opens the components panel.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: 'notes',
+    heading: 'Notes',
+    body: (
+      <>
+        <p>
+          Notes are the core building block. Add one from the toolbar or by double-tapping empty
+          canvas, then double-click a note to edit it.
+        </p>
+        <ul>
+          <li>
+            <strong>Markdown:</strong> headings, <strong>bold</strong>, <em>italic</em>, lists, task
+            lists, links, and tables all render as you&apos;d expect.
+          </li>
+          <li>
+            <strong>Move &amp; resize:</strong> drag to reposition, drag a corner to resize.
+          </li>
+          <li>
+            <strong>Color:</strong> pick from the note palette to group things visually.
+          </li>
+          <li>
+            <strong>Lock</strong> a note to prevent accidental moves; <strong>delete</strong> from
+            its menu.
+          </li>
+          <li>
+            <strong>Images:</strong> add an image block inside a note (validated for type and size).
+          </li>
+        </ul>
+        <Tip>
+          Notes render Markdown, so <span className="font-mono">## A heading</span> and{' '}
+          <span className="font-mono">- a list item</span> format automatically.
+        </Tip>
+      </>
+    ),
+  },
+  {
+    id: 'connections',
+    heading: 'Connections',
+    body: (
+      <>
+        <p>
+          Connections turn a pile of notes into a map. Drag from the handle on one note to another
+          to create a directional arrow showing which beat leads where.
+        </p>
+        <ul>
+          <li>Arrows are directional — perfect for branching choices and story flow.</li>
+          <li>Recolor or delete a connection from its controls.</li>
+          <li>Deleting a note also removes the connections attached to it.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: 'drawings',
+    heading: 'Drawings',
+    body: (
+      <p>
+        When a sketch says it faster than words, add a <strong>drawing</strong> from the toolbar and
+        draw freehand. A drawing behaves like a note: move it, resize it, and connect it to other
+        notes — useful for maps, timelines, or the shape of a space.
+      </p>
+    ),
+  },
+  {
+    id: 'components',
+    heading: 'Components',
+    body: (
+      <>
+        <p>
+          Components are the variables your story turns on — the things that change as a reader makes
+          choices. Open the <strong>Components</strong> panel from the toolbar to manage them.
+        </p>
+        <ul>
+          <li>
+            <strong>Number</strong> — a count or score, e.g. <span className="font-mono">fuel</span>.
+          </li>
+          <li>
+            <strong>String</strong> — a piece of text, e.g. the hero&apos;s name.
+          </li>
+          <li>
+            <strong>Boolean</strong> — a true/false flag, e.g.{' '}
+            <span className="font-mono">hasKey</span>.
+          </li>
+          <li>
+            <strong>List</strong> — a set of choices, e.g. weather is one of{' '}
+            <span className="font-mono">sunny, rainy, snowy</span>.
+          </li>
+        </ul>
+        <p>
+          For a <strong>list</strong>, open the component and use the choices editor to add, rename,
+          reorder, or remove options. Each component also shows its current value, a{' '}
+          <strong>&ldquo;used in N notes&rdquo;</strong> count, and a{' '}
+          <strong>Reset to default</strong> action. Renaming a component updates every note that
+          references it.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'references',
+    heading: 'Referencing components in notes',
+    body: (
+      <>
+        <p>
+          Inside a note, type <span className="font-mono">@</span> to open autocomplete and pick a
+          component. IdeaBoard inserts a reference token like{' '}
+          <span className="font-mono">{'{{fuel}}'}</span> that stays linked to the component.
+        </p>
+        <ul>
+          <li>
+            Valid references render as a <span className="mkt-chip">chip</span>; click one to jump to
+            the components panel.
+          </li>
+          <li>
+            If a referenced component is renamed, the token updates automatically. If it&apos;s
+            deleted, the reference is flagged so you can fix it.
+          </li>
+          <li>The components panel shows exactly which notes use each component.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: 'undo-redo',
+    heading: 'Undo & redo',
+    body: (
+      <>
+        <p>
+          Every board keeps a session history of your recent actions — creating, moving, resizing,
+          editing, recoloring notes, and creating connections.
+        </p>
+        <ul>
+          <li>
+            <strong>Undo:</strong> <Kbd>Ctrl</Kbd> + <Kbd>Z</Kbd>
+          </li>
+          <li>
+            <strong>Redo:</strong> <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>Z</Kbd> or{' '}
+            <Kbd>Ctrl</Kbd> + <Kbd>Y</Kbd>
+          </li>
+        </ul>
+        <Tip>History is per session — it resets when you reload the board.</Tip>
+      </>
+    ),
+  },
+  {
+    id: 'account',
+    heading: 'Your account',
+    body: (
+      <>
+        <p>From Settings you can manage your profile and preferences.</p>
+        <ul>
+          <li>
+            <strong>Profile:</strong> display name and bio.
+          </li>
+          <li>
+            <strong>Avatar:</strong> pick a generated style or upload your own image.
+          </li>
+          <li>
+            <strong>Theme:</strong> switch between light and dark from the toggle in the header.
+          </li>
+          <li>
+            <strong>Privacy:</strong> boards are private to your account by default. You can delete
+            your account and its data at any time.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+];
+
+export default function GuidePage() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <SiteHeader />
+
+      <main className="flex-1">
+        <div className="relative border-b border-border/60">
+          <div className="mkt-dotgrid mkt-grid-fade absolute inset-0 opacity-70" aria-hidden />
+          <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back home
+            </Link>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">Guide</h1>
+              <span className="rounded-full border border-violet-300 bg-violet-500/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-violet-700 dark:border-violet-800 dark:text-violet-300">
+                v{APP_VERSION}
+              </span>
+            </div>
+            <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">
+              Everything IdeaBoard can do today, from your first note to wiring up the variables your
+              story depends on. This guide grows with each release.
+            </p>
+          </div>
+        </div>
+
+        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[220px_1fr]">
+          <aside className="hidden lg:block">
+            <nav className="sticky top-24" aria-label="On this page">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Contents
+              </p>
+              <ul className="space-y-2 border-l border-border">
+                {sections.map((section) => (
+                  <li key={section.id}>
+                    <a
+                      href={`#${section.id}`}
+                      className="-ml-px block border-l-2 border-transparent py-0.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-violet-500 hover:text-foreground"
+                    >
+                      {section.heading}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </aside>
+
+          <div className="max-w-2xl">
+            {sections.map((section) => (
+              <section
+                key={section.id}
+                id={section.id}
+                className="scroll-mt-24 border-border/60 py-8 first:pt-0 [&:not(:last-child)]:border-b"
+              >
+                <h2 className="text-xl font-semibold tracking-tight">{section.heading}</h2>
+                <div className="legal-prose mt-4">{section.body}</div>
+              </section>
+            ))}
+
+            <div className="mt-10 flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-4 text-sm text-muted-foreground">
+              <Keyboard className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+              <p>
+                Looking for what changed recently? See the{' '}
+                <Link
+                  href="/#features"
+                  className="font-medium text-violet-600 hover:underline dark:text-violet-400"
+                >
+                  feature overview
+                </Link>{' '}
+                on the home page. This guide is updated with every release.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <SiteFooter />
+    </div>
+  );
+}

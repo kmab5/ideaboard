@@ -7,6 +7,7 @@ const linkGroups = [
     links: [
       { label: 'Features', href: '/#features' },
       { label: 'How it works', href: '/#how' },
+      { label: 'Guide', href: '/guide' },
       { label: 'Get started', href: '/register' },
       { label: 'Log in', href: '/login' },
     ],
