@@ -1,8 +1,8 @@
 # IdeaBoard - MVP Requirements
 
-**Version:** 1.0  
-**Date:** January 14, 2026
-**Status:** In Development
+**Version:** 1.0
+**Date:** January 14, 2026 (updated August 4, 2026)
+**Status:** MVP feature-complete — app version `0.5.0`, deployed; hardening & E2E depth remaining. See `LOG.md`.
 
 ---
 
@@ -53,7 +53,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 
 | Technology | Purpose | Version |
 | ------------ | --------- | --------- |
-| **Next.js 14** | React framework with App Router | ^14.0.0 |
+| **Next.js 15** | React framework with App Router | ^15.5.0 |
 | **TypeScript** | Type safety | ^5.0.0 |
 | **React 18** | UI library | ^18.2.0 |
 | **Tailwind CSS** | Utility-first styling | ^3.4.0 |
@@ -68,7 +68,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | **DiceBear** | Avatar generation | ^7.0.0 |
 | **react-markdown** | Markdown rendering | ^9.0.0 |
 | **remark-gfm** | GitHub Flavored Markdown (tables, task lists) | ^4.0.0 |
-| **tldraw** | Drawing/sketching library | ^2.0.0 |
+| **Custom HTML5 Canvas** | Freehand drawing (replaced tldraw to cut bundle size & a vuln source) | — |
 
 ### 2.2 Backend (Supabase)
 
@@ -593,28 +593,28 @@ docs(api): update authentication endpoints
 
 ---
 
-### Phase 10: @ References (Week 10) 🔄 PARTIAL
+### Phase 10: @ References (Week 10) ✅ COMPLETE
 
 #### 10.1 Autocomplete
 
-- [ ] Detect @ trigger in editor
-- [ ] Show component dropdown
-- [ ] Filter by typed text
-- [ ] Insert component reference
+- [x] Detect @ trigger in editor
+- [x] Show component dropdown
+- [x] Filter by typed text
+- [x] Insert component reference (inserts linked `{{name}}` token)
 
 #### 10.2 Reference Display
 
-- [x] Style inline references (chip/badge) - supports {{component}} syntax
+- [x] Style inline references (chip/badge)
 - [x] Show component name in styled badge
-- [ ] Click to view component
-- [ ] Handle deleted components
+- [x] Click to view component (opens the components panel)
+- [x] Handle deleted components (flagged as invalid; rename propagates to notes)
 
 #### 10.3 Reference Tracking
 
-- [ ] Create component_references entries
-- [ ] Update on note save
-- [ ] Clean up stale references
-- [ ] Show "used in X notes" count
+- [x] Create component_references entries
+- [x] Update on note save
+- [x] Clean up stale references (cascade on delete + best-effort resync)
+- [x] Show "used in X notes" count
 
 ---
 
@@ -656,14 +656,14 @@ docs(api): update authentication endpoints
 
 ---
 
-### Phase 12: Polish & Deploy (Week 12) 🔄 IN PROGRESS
+### Phase 12: Polish & Deploy (Week 12) 🔄 NEARLY COMPLETE
 
 #### 12.1 Error Handling
 
-- [ ] Global error boundary
+- [x] Global error boundary (`app/error.tsx` + `app/global-error.tsx`)
 - [x] Toast notifications (sonner)
 - [x] Form error messages (react-hook-form + zod)
-- [x] Network error handling (try/catch with toast)
+- [x] Network error handling (try/catch with toast + optimistic rollback)
 
 #### 12.2 Loading States
 
@@ -673,18 +673,20 @@ docs(api): update authentication endpoints
 
 #### 12.3 Testing
 
-- [ ] Unit tests (Vitest) - structure in place
-- [ ] E2E tests (Playwright) - structure in place
-- [ ] Test auth flows
-- [ ] Test board operations
+- [x] Unit tests (Vitest) — 50 tests across navigation, upload, avatar, history, validations, references
+- [x] E2E harness (Playwright) — smoke test in place
+- [ ] Test auth flows (E2E) — _remaining_
+- [ ] Test board operations (E2E) — _remaining_
 
 #### 12.4 Deployment
 
-- [ ] Configure Vercel project
-- [ ] Set environment variables
-- [ ] Deploy to production
+- [x] Configure Vercel project
+- [x] Set environment variables
+- [x] Deploy to production (live at ideaboard-cs.vercel.app)
 - [x] Test production build (pnpm build successful)
 - [ ] Set up error monitoring (optional)
+
+**Remaining for MVP sign-off:** deeper E2E coverage (auth + board + component flows); optional error monitoring and snap-to-grid.
 
 ---
 
