@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, User, CheckCircle2, XCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2, User, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useUserStore } from '@/lib/store';
 import { profileUpdateSchema, type ProfileUpdateInput } from '@/lib/validations';
@@ -15,16 +16,54 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { AvatarPicker } from '@/components/common/avatar-picker';
 import { PageLoader } from '@/components/common';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
   const supabase = createClient();
+  const router = useRouter();
   const { user, profile, setProfile, setUser } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Permanently delete the account. The server route derives the target user
+  // from the session, so no identifier is sent from the client.
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/account/delete', { method: 'POST' });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        toast.error(result.error ?? 'Failed to delete account');
+        return;
+      }
+
+      toast.success('Your account has been deleted');
+      setUser(null);
+      setProfile(null);
+      router.push('/');
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      toast.error('Failed to delete account');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
 
   const {
     register,
@@ -325,8 +364,72 @@ export default function SettingsPage() {
               />
             </CardContent>
           </Card>
+
+          {/* Danger Zone */}
+          <Card className="overflow-hidden border-destructive/40">
+            <CardHeader className="border-b border-destructive/30 bg-destructive/5">
+              <CardTitle className="flex items-center gap-2 text-lg text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>Permanently delete your account and all its data</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+              <p className="text-sm text-muted-foreground">
+                Deleting your account removes your profile, every story and board you&apos;ve
+                created, and all uploaded images. This cannot be undone.
+              </p>
+              <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+                Delete account
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Delete account confirmation */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete your account?</DialogTitle>
+            <DialogDescription>
+              This permanently deletes your profile, all stories and boards, and every uploaded
+              image. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <Label htmlFor="delete-confirm">
+              Type <span className="font-mono font-semibold">DELETE</span> to confirm
+            </Label>
+            <Input
+              id="delete-confirm"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              autoComplete="off"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+              onClick={handleDeleteAccount}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Permanently delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

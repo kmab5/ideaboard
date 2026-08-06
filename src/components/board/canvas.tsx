@@ -97,7 +97,19 @@ function CanvasInner({
 
       try {
         const fileExt = safeExtensionForType(file.type);
-        const fileName = `${board.id}/${noteId}/${Date.now()}.${fileExt}`;
+
+        // The first path segment MUST be the owner's user id: storage RLS
+        // enforces `auth.uid() = (storage.foldername(name))[1]` so that one
+        // user cannot overwrite or delete another user's attachments.
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error('You must be signed in to upload images');
+          return null;
+        }
+
+        const fileName = `${user.id}/${board.id}/${noteId}/${Date.now()}.${fileExt}`;
 
         const { data, error } = await supabase.storage
           .from('note-attachments')
@@ -117,7 +129,7 @@ function CanvasInner({
         return null;
       }
     },
-    [board.id, supabase.storage]
+    [board.id, supabase.storage, supabase.auth]
   );
 
   // Convert notes to React Flow nodes
