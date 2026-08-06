@@ -5,31 +5,39 @@ newest release is summarized at the top; the detailed changelog is at the
 bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`.
 
-**Current version: `0.6.0`** · Status: **MVP complete.** Full security audit passed; 0 known dependency vulnerabilities.
+**Current version: `0.6.1`** · Status: **MVP complete.** Full security audit passed; 0 known dependency vulnerabilities; rate limiting + automated dependency scanning added.
 
 ---
 
-## Latest updates — v0.6.0
+## Latest updates — v0.6.1
 
-- **MVP complete.** The last open items — E2E coverage for auth flows and board operations — are now implemented (13 new Playwright tests across `e2e/auth.spec.ts` and `e2e/board.spec.ts`).
-- **Full security audit conducted; 7 findings fixed.** Including a **high-severity cross-tenant flaw** that let any authenticated user delete or overwrite another user's note images. Documented in `SECURITY.md`.
-- **Dependency vulnerabilities: 19 production / 25 total → 0.**
-- **Account deletion implemented** — it was promised in the Privacy Policy, Terms, and Guide but did not exist. Now a real Danger Zone in Settings backed by a server route.
-- **Security headers added** (CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy); `X-Powered-By` removed.
-
-> ⚠️ **Action required after deploying:** run `docs/database/migrations/001_security_hardening.sql` in Supabase, and set `SUPABASE_SERVICE_ROLE_KEY` in Vercel. The storage vulnerability lives in database policies — application code alone does not close it.
+- **Rate limiting added** (Upstash Redis) for the two request paths that actually flow through the Next.js server: a strict per-user limit on account deletion, and a general per-IP throttle in middleware. Fails open (disabled, not broken) if Upstash credentials aren't set.
+- **Automated dependency scanning** — CI now runs `pnpm audit --prod --audit-level high` on every push/PR, and Dependabot opens weekly PRs for outdated packages and GitHub Actions versions.
+- **Documented a real architectural limit:** board/note/component mutations and Supabase auth go directly from the browser to Supabase, so no Next.js-side rate limiter can see or throttle them. See `SECURITY.md` for what this does and doesn't cover.
 
 ## Upcoming / planned
 
 - **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src` (the main outstanding hardening item).
-- **CI hardening** — add `pnpm audit` and Dependabot to the pipeline; run E2E against a seeded test project.
+- **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes — a real architectural change, tracked as future work, not a quick add.
 - **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle previewing `{{fuel}}` as its current value.
-- **Optional** — error monitoring (Sentry), application-level rate limiting, snap-to-grid.
+- **Optional** — error monitoring (Sentry), snap-to-grid.
 - **Post-MVP (v1.1+)** — conditional & technical notes, containers, multi-board per story, export/import; then real-time collaboration and sharing (v1.2).
 
 ---
 
 ## Changelog
+
+### [0.6.1] — 2026-08-06
+
+**Rate limiting**
+- Added `src/lib/rate-limit.ts` (Upstash Redis + `@upstash/ratelimit`, sliding window). Fails open when `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are unset, so the app never breaks in dev/CI without credentials — verified via build and a live server run with the vars unset.
+- `POST /api/account/delete`: 3 requests/hour, keyed by user id.
+- All requests through middleware: 300/minute per IP, general abuse/DoS protection.
+- Documented in `SECURITY.md` that this does **not** cover board/note/component writes or Supabase auth calls, which bypass the Next.js server entirely — a real architectural constraint, not an oversight.
+
+**CI / dependency hygiene**
+- `.github/workflows/ci.yml` now runs `pnpm audit --prod --audit-level high` before lint/type-check/test/build.
+- Added `.github/dependabot.yml`: weekly PRs for npm/pnpm dependencies (patch/minor batched, majors separate) and GitHub Actions versions.
 
 ### [0.6.0] — 2026-08-06
 

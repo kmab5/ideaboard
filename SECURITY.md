@@ -122,8 +122,8 @@ These were tested during the audit and found sound:
 Honest disclosure of what is *not* yet addressed:
 
 1. **CSP uses `'unsafe-inline'` and `'unsafe-eval'` in `script-src`.** Next.js's inline bootstrap requires this without a nonce-based setup. Moving to per-request nonces via middleware is the main outstanding hardening item — it would make the CSP a real XSS mitigation rather than a partial one.
-2. **No application-level rate limiting.** Supabase enforces its own auth rate limits, but board/note mutations are unthrottled. Consider Upstash or Vercel rate limiting if abuse appears.
-3. **No automated dependency scanning in CI.** `pnpm audit` is run manually today; adding it (and Dependabot) to the CI workflow would catch regressions.
+2. **Rate limiting has a real architectural gap.** Board/note/component mutations and Supabase auth calls (`supabase.auth.signInWithPassword`, `supabase.from('notes').insert(...)`) go **directly from the browser to Supabase** — they never pass through this Next.js server, so no server-side rate limiter (ours or anyone else's) can see or throttle them. What's implemented (`src/lib/rate-limit.ts`, Upstash Redis) covers only what's real to cover: a strict per-user limit on `/api/account/delete`, and a general per-IP throttle on all requests in middleware. Supabase's own auth rate limits (configurable in its dashboard) are the actual protection for login/signup abuse today. Closing this gap for board writes would require proxying mutations through Next.js API routes — a real architectural change, not a quick add.
+3. **Dependency scanning is now automated.** CI runs `pnpm audit --prod --audit-level high` on every push/PR, and Dependabot (`​.github/dependabot.yml`) opens weekly PRs for outdated packages (patch/minor batched together; majors reviewed individually) and GitHub Actions versions.
 4. **No error monitoring.** Server-side failures are `console.error` only. Sentry or similar would improve incident response.
 5. **Undo/redo history is in-memory** and not persisted — not a security issue, but note that unsaved history is lost on reload.
 6. **Public storage buckets.** `avatars`, `thumbnails`, and `note-attachments` are publicly readable by design (images are rendered by URL). Anyone with a URL can view the object. Do not treat uploaded images as confidential.
@@ -137,6 +137,7 @@ Before and after each deploy:
 - [ ] Run `docs/database/migrations/001_security_hardening.sql` against the production database.
 - [ ] Confirm `SUPABASE_SERVICE_ROLE_KEY` is set in Vercel and is **not** prefixed `NEXT_PUBLIC_`.
 - [ ] Confirm `NEXT_PUBLIC_APP_URL` includes the scheme (`https://…`).
+- [ ] Confirm `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are set (optional — the app runs without them, but rate limiting is disabled until they're set).
 - [ ] Verify buckets show non-null `file_size_limit` and `allowed_mime_types`.
 - [ ] Verify headers: `curl -I https://your-domain` should show CSP, HSTS, `X-Frame-Options`, and no `X-Powered-By`.
 - [ ] Run `pnpm audit --prod` and confirm no known vulnerabilities.

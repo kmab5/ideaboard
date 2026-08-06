@@ -1,6 +1,6 @@
 {
   "name": "ideaboard",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "scripts": {
@@ -44,6 +44,8 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.90.13",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.2",
     "@vercel/analytics": "^1.6.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
