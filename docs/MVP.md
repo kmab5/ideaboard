@@ -6,6 +6,28 @@
 
 ---
 
+## v1.1 progress (post-MVP)
+
+Per the roadmap ordering (conditional notes → technical notes → multi-board → containers → export/import):
+
+| Feature | Status |
+| --------- | -------- |
+| Conditional Notes | ✅ Shipped (v0.7.0) |
+| Technical Notes | Not started |
+| Multi-board per story | Not started |
+| Containers | Not started |
+| Export/Import | Not started |
+
+### Conditional Notes — implementation notes
+
+- New note type `conditional`, rendered by `ConditionalNoteNode`. Branches are defined in `condition_data` (see `src/lib/conditions.ts` for the shape and evaluation engine) and evaluated live against the current component values.
+- A branch's target is a real connection, correlated via a new `branch_id` column on `connections` (migration `002_conditional_notes.sql`) — not a separate parallel data structure.
+- Branches are evaluated in order; first match wins. An optional else/default branch catches everything else.
+- The canvas highlights the currently active branch's connection (thicker, solid) and dims inactive branches (dashed, faded) — this is a live visualization, re-evaluated whenever a component's value changes, not a runtime story engine.
+- Deliberately out of scope for this pass: nested/compound OR logic (only AND within a branch; use multiple branches for OR-like behavior), and validating that every branch has a target before considering a conditional note "complete" (a branch with no target simply has no connection yet).
+
+---
+
 ## 1. MVP Scope
 
 ### 1.1 Core Features for MVP
@@ -34,7 +56,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 
 | Feature | Target Version |
 | --------- | ---------------- |
-| Conditional Notes | v1.1 |
+| Conditional Notes | ✅ Shipped in v0.7.0 (see LOG.md) |
 | Technical Notes | v1.1 |
 | Containers | v1.1 |
 | Multi-board per story | v1.1 |

@@ -22,11 +22,12 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Note, Connection, Board } from '@/types/database';
 import { NoteNode } from './note-node';
 import { DrawingNode } from './drawing-node';
+import { ConditionalNoteNode } from './conditional-note-node';
 import { ConnectionEdge } from './connection-edge';
 import { Toolbar } from './toolbar';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { useHistoryStore } from '@/lib/store';
+import { useHistoryStore, useComponentStore } from '@/lib/store';
 import { validateImageFile, safeExtensionForType, NOTE_IMAGE_MAX_BYTES } from '@/lib/upload';
 import {
   NOTE_COLOR_VALUES,
@@ -35,17 +36,31 @@ import {
   DEFAULT_DRAWING_SIZE,
   randomFrom,
 } from '@/lib/constants';
+import {
+  parseConditionData,
+  makeComponentLookup,
+  getActiveBranchId,
+  type ConditionalBranch,
+} from '@/lib/conditions';
 
 // Custom node types - memoized to prevent recreation warnings
 const defaultNodeTypes = {
   noteNode: NoteNode,
   drawingNode: DrawingNode,
+  conditionalNode: ConditionalNoteNode,
 };
 
 // Custom edge types - memoized to prevent recreation warnings
 const defaultEdgeTypes = {
   connectionEdge: ConnectionEdge,
 };
+
+/** Map a note's data-model type to its React Flow node component. */
+function nodeTypeForNote(type: Note['type']): keyof typeof defaultNodeTypes {
+  if (type === 'drawing') return 'drawingNode';
+  if (type === 'conditional') return 'conditionalNode';
+  return 'noteNode';
+}
 
 interface CanvasProps {
   board: Board;
@@ -132,23 +147,147 @@ function CanvasInner({
     [board.id, supabase.storage, supabase.auth]
   );
 
+  // History store for undo/redo (moved up: handleSaveBranches below needs pushAction,
+  // and notesToNodes needs handleSaveBranches).
+  const {
+    pushAction,
+    undo: undoAction,
+    redo: redoAction,
+    canUndo,
+    canRedo,
+    setIsUndoingOrRedoing,
+  } = useHistoryStore();
+
+  // Persist a conditional note's branches, and reconcile the actual outgoing
+  // connections so each branch's `target` matches what the editor shows.
+  // Connections are correlated to branches via `branch_id` (see conditions.ts
+  // and migration 002); a branch with no chosen target simply has no connection.
+  const handleSaveBranches = useCallback(
+    (noteId: string, branches: ConditionalBranch[], targets: Record<string, string | null>) => {
+      const previousConditionData = notes.find((n) => n.id === noteId)?.condition_data ?? null;
+
+      pushAction({
+        type: 'UPDATE_NOTE',
+        undo: { noteId, previousState: { condition_data: previousConditionData } },
+        redo: { noteId, newState: { condition_data: { branches } } },
+      });
+      onUpdateNote(noteId, { condition_data: { branches } });
+
+      const existingBranchConnections = connections.filter(
+        (c) => c.source_note_id === noteId && c.branch_id
+      );
+
+      branches.forEach((branch, index) => {
+        const desiredTarget = targets[branch.id] ?? null;
+        const existing = existingBranchConnections.find((c) => c.branch_id === branch.id);
+
+        if (!desiredTarget) {
+          if (existing) onDeleteConnection(existing.id);
+          return;
+        }
+
+        if (!existing) {
+          onCreateConnection({
+            id: uuidv4(),
+            board_id: board.id,
+            source_note_id: noteId,
+            target_note_id: desiredTarget,
+            source_anchor: 'bottom',
+            target_anchor: 'top',
+            color: '#7c3aed',
+            style: 'solid',
+            thickness: 2,
+            arrow_type: 'single',
+            curvature: 'curved',
+            branch_label: branch.label,
+            branch_order: index,
+            branch_id: branch.id,
+          });
+        } else if (
+          existing.target_note_id !== desiredTarget ||
+          existing.branch_label !== branch.label ||
+          existing.branch_order !== index
+        ) {
+          onUpdateConnection(existing.id, {
+            target_note_id: desiredTarget,
+            branch_label: branch.label,
+            branch_order: index,
+          });
+        }
+      });
+
+      // Remove connections for branches that no longer exist.
+      const currentBranchIds = new Set(branches.map((b) => b.id));
+      existingBranchConnections
+        .filter((c) => c.branch_id && !currentBranchIds.has(c.branch_id))
+        .forEach((c) => onDeleteConnection(c.id));
+    },
+    [board.id, notes, connections, onUpdateNote, onCreateConnection, onUpdateConnection, onDeleteConnection, pushAction]
+  );
+
   // Convert notes to React Flow nodes
   const notesToNodes = useCallback(
     (notesList: Note[]): Node[] =>
-      notesList.map((note) => ({
-        id: note.id,
-        type: note.type === 'drawing' ? 'drawingNode' : 'noteNode',
-        position: { x: note.position_x, y: note.position_y },
-        data: {
-          note,
-          onUpdate: onUpdateNote,
-          onDelete: onDeleteNote,
-          onImageUpload: note.type === 'drawing' ? undefined : handleImageUpload,
-        },
-        style: { width: note.width, height: note.height },
-        draggable: !note.is_locked,
-      })),
-    [onUpdateNote, onDeleteNote, handleImageUpload]
+      notesList.map((note) => {
+        const isConditional = note.type === 'conditional';
+        const branchTargets: Record<string, string | null> = {};
+        if (isConditional) {
+          connections
+            .filter((c) => c.source_note_id === note.id && c.branch_id)
+            .forEach((c) => {
+              branchTargets[c.branch_id as string] = c.target_note_id;
+            });
+        }
+
+        return {
+          id: note.id,
+          type: nodeTypeForNote(note.type),
+          position: { x: note.position_x, y: note.position_y },
+          data: {
+            note,
+            onUpdate: onUpdateNote,
+            onDelete: onDeleteNote,
+            onImageUpload: note.type === 'drawing' ? undefined : handleImageUpload,
+            ...(isConditional
+              ? {
+                  onSaveBranches: handleSaveBranches,
+                  branchTargets,
+                  availableNotes: notes
+                    .filter((n) => n.id !== note.id)
+                    .map((n) => ({ id: n.id, title: n.title })),
+                }
+              : {}),
+          },
+          style: { width: note.width, height: note.height },
+          draggable: !note.is_locked,
+        };
+      }),
+    [onUpdateNote, onDeleteNote, handleImageUpload, connections, notes, handleSaveBranches]
+  );
+
+  // Live branch evaluation for conditional notes, used to highlight the
+  // currently "active" outgoing connection as component values change.
+  const allComponents = useComponentStore((s) => s.components);
+  const componentLookup = useMemo(() => makeComponentLookup(allComponents), [allComponents]);
+  const activeBranchByNoteId = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    notes
+      .filter((n) => n.type === 'conditional')
+      .forEach((n) => {
+        const data = parseConditionData(n.condition_data);
+        map[n.id] = getActiveBranchId(data.branches, componentLookup);
+      });
+    return map;
+  }, [notes, componentLookup]);
+
+  // A connection is only ever "active"/"inactive" if it's a branch of a
+  // conditional note (branch_id set); ordinary connections are unaffected.
+  const isBranchActive = useCallback(
+    (connection: Connection): boolean | undefined => {
+      if (!connection.branch_id) return undefined;
+      return activeBranchByNoteId[connection.source_note_id] === connection.branch_id;
+    },
+    [activeBranchByNoteId]
   );
 
   // Convert connections to React Flow edges
@@ -167,9 +306,10 @@ function CanvasInner({
           onUpdate: onUpdateConnection,
           onDelete: onDeleteConnection,
           showGrid: gridVisible,
+          isActiveBranch: isBranchActive(connection),
         },
       })),
-    [onUpdateConnection, onDeleteConnection]
+    [onUpdateConnection, onDeleteConnection, isBranchActive]
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -177,16 +317,6 @@ function CanvasInner({
   const [activeTool, setActiveTool] = useState<'select' | 'pan'>('select');
   const [showGrid, setShowGrid] = useState(true);
   const [zoom, setZoom] = useState(board.viewport_zoom);
-
-  // History store for undo/redo
-  const {
-    pushAction,
-    undo: undoAction,
-    redo: redoAction,
-    canUndo,
-    canRedo,
-    setIsUndoingOrRedoing,
-  } = useHistoryStore();
 
   // Handle undo
   const handleUndo = useCallback(() => {
@@ -383,9 +513,19 @@ function CanvasInner({
         const sizeChanged =
           node.style?.width !== noteData.width || node.style?.height !== noteData.height;
 
+        const isConditional = noteData.type === 'conditional';
+        const branchTargets: Record<string, string | null> = {};
+        if (isConditional) {
+          connections
+            .filter((c) => c.source_note_id === noteData.id && c.branch_id)
+            .forEach((c) => {
+              branchTargets[c.branch_id as string] = c.target_note_id;
+            });
+        }
+
         return {
           ...node,
-          type: noteData.type === 'drawing' ? 'drawingNode' : 'noteNode',
+          type: nodeTypeForNote(noteData.type),
           position:
             !isInteracting && positionChanged
               ? { x: noteData.position_x, y: noteData.position_y }
@@ -399,6 +539,15 @@ function CanvasInner({
             onUpdate: onUpdateNote,
             onDelete: onDeleteNote,
             onImageUpload: noteData.type === 'drawing' ? undefined : handleImageUpload,
+            ...(isConditional
+              ? {
+                  onSaveBranches: handleSaveBranches,
+                  branchTargets,
+                  availableNotes: notes
+                    .filter((n) => n.id !== noteData.id)
+                    .map((n) => ({ id: n.id, title: n.title })),
+                }
+              : {}),
           },
           draggable: !noteData.is_locked,
         };
@@ -410,7 +559,16 @@ function CanvasInner({
       const noteIds = new Set(notes.map((n) => n.id));
       return currentNodes.filter((node) => noteIds.has(node.id));
     });
-  }, [notes, notesToNodes, onUpdateNote, onDeleteNote, handleImageUpload, setNodes]);
+  }, [
+    notes,
+    connections,
+    notesToNodes,
+    onUpdateNote,
+    onDeleteNote,
+    handleImageUpload,
+    handleSaveBranches,
+    setNodes,
+  ]);
 
   // Handle edge updates
   useEffect(() => {
@@ -439,6 +597,7 @@ function CanvasInner({
               onUpdate: onUpdateConnection,
               onDelete: onDeleteConnection,
               showGrid,
+              isActiveBranch: isBranchActive(connectionData),
             },
           };
         }
@@ -451,7 +610,15 @@ function CanvasInner({
       const connIds = new Set(connections.map((c) => c.id));
       return currentEdges.filter((edge) => connIds.has(edge.id));
     });
-  }, [connections, connectionsToEdges, setEdges, onUpdateConnection, onDeleteConnection, showGrid]);
+  }, [
+    connections,
+    connectionsToEdges,
+    setEdges,
+    onUpdateConnection,
+    onDeleteConnection,
+    showGrid,
+    isBranchActive,
+  ]);
 
   // Pan to and select a note when asked (e.g. from the component panel's
   // "used in" list). focusNoteId is cleared by the parent after each request.
@@ -640,6 +807,40 @@ function CanvasInner({
     [board.id, nodes.length, onCreateNote, getViewportCenter, pushAction]
   );
 
+  // Add new conditional note at position (starts with no branches; the author
+  // fills those in via "Manage branches" on the node itself).
+  const handleAddConditionalNote = useCallback(
+    (position?: { x: number; y: number }) => {
+      const pos = position || getViewportCenter();
+
+      const newNote: Partial<Note> = {
+        id: uuidv4(),
+        board_id: board.id,
+        type: 'conditional',
+        title: 'Condition',
+        content: { blocks: [] },
+        position_x: pos.x,
+        position_y: pos.y,
+        width: 220,
+        height: 180,
+        color: '#FFFFFF',
+        is_collapsed: false,
+        is_locked: false,
+        z_index: nodes.length,
+        condition_data: { branches: [] },
+      };
+
+      pushAction({
+        type: 'CREATE_NOTE',
+        undo: { noteId: newNote.id },
+        redo: { noteId: newNote.id, fullState: newNote as Note },
+      });
+
+      onCreateNote(newNote);
+    },
+    [board.id, nodes.length, onCreateNote, getViewportCenter, pushAction]
+  );
+
   // Zoom controls
   const handleZoomIn = useCallback(() => {
     reactFlowInstance.zoomIn({ duration: 200 });
@@ -709,7 +910,11 @@ function CanvasInner({
           setActiveTool('pan');
           break;
         case 'n':
-          handleAddNote();
+          if (e.shiftKey) {
+            handleAddConditionalNote();
+          } else {
+            handleAddNote();
+          }
           break;
         case 'd':
           handleAddDrawing();
@@ -735,6 +940,7 @@ function CanvasInner({
   }, [
     handleAddNote,
     handleAddDrawing,
+    handleAddConditionalNote,
     handleUndo,
     handleRedo,
     handleZoomIn,
@@ -811,6 +1017,7 @@ function CanvasInner({
             onFitView={handleFitView}
             onAddNote={() => handleAddNote()}
             onAddDrawing={() => handleAddDrawing()}
+            onAddConditional={() => handleAddConditionalNote()}
             onToolChange={setActiveTool}
             onToggleGrid={() => setShowGrid(!showGrid)}
             onManualSave={handleManualSave}

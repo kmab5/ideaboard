@@ -26,6 +26,7 @@ export const createConnectionSchema = z.object({
   curvature: curvatureTypeSchema.default('curved'),
   branch_label: z.string().max(50).nullable().optional(),
   branch_order: z.number().int().nullable().optional(),
+  branch_id: z.string().uuid().nullable().optional(),
 });
 
 export const updateConnectionSchema = z.object({
@@ -42,6 +43,7 @@ export const updateConnectionSchema = z.object({
   curvature: curvatureTypeSchema.optional(),
   branch_label: z.string().max(50).nullable().optional(),
   branch_order: z.number().int().nullable().optional(),
+  branch_id: z.string().uuid().nullable().optional(),
 });
 
 // =============================================================================

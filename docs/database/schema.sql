@@ -356,6 +356,7 @@ CREATE TABLE connections (
     -- For conditional note branches
     branch_label VARCHAR(50), -- e.g., "true", "false", "else"
     branch_order INTEGER, -- Order of branches for conditional notes
+    branch_id UUID, -- Correlates with a branch id in the source note's condition_data.branches
     
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

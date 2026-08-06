@@ -16,6 +16,7 @@ import {
   Pencil,
   Undo2,
   Redo2,
+  GitBranch,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -33,6 +34,7 @@ interface ToolbarProps {
   onFitView: () => void;
   onAddNote: () => void;
   onAddDrawing: () => void;
+  onAddConditional: () => void;
   onToolChange: (tool: 'select' | 'pan') => void;
   onToggleGrid: () => void;
   onManualSave?: () => void;
@@ -51,6 +53,7 @@ export function Toolbar({
   onFitView,
   onAddNote,
   onAddDrawing,
+  onAddConditional,
   onToolChange,
   onToggleGrid,
   onManualSave,
@@ -179,6 +182,16 @@ export function Toolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">Add Drawing (D)</TooltipContent>
+          </Tooltip>
+
+          {/* Add Conditional Note */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAddConditional}>
+                <GitBranch className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Add Conditional Note (Shift+N)</TooltipContent>
           </Tooltip>
 
           <Separator orientation="horizontal" className="w-6" />

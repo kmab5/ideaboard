@@ -20,6 +20,8 @@ interface ConnectionEdgeData {
   onUpdate: (id: string, updates: Partial<Connection>) => void;
   onDelete: (id: string) => void;
   showGrid?: boolean;
+  /** Set only for a conditional note's branch connections; see canvas.tsx. */
+  isActiveBranch?: boolean;
 }
 
 const ConnectionEdge = memo(
@@ -66,10 +68,19 @@ const ConnectionEdge = memo(
 
     // Style based on connection properties - dark mode aware with gray default
     const strokeColor = connection?.color || '#6b7280';
-    const strokeWidth = connection?.thickness || 2;
+    const baseStrokeWidth = connection?.thickness || 2;
+
+    // Branch highlighting for conditional notes: undefined (not a branch),
+    // true (the currently active path), or false (a branch that isn't taken
+    // for the current component values). Only affects branch connections.
+    const isActiveBranch = data?.isActiveBranch;
+    const isInactiveBranch = isActiveBranch === false;
+    const strokeWidth = isActiveBranch ? baseStrokeWidth + 1.5 : baseStrokeWidth;
 
     let strokeDasharray: string | undefined;
-    if (connection?.style === 'dashed') {
+    if (isInactiveBranch) {
+      strokeDasharray = '5,5';
+    } else if (connection?.style === 'dashed') {
       strokeDasharray = '8,4';
     } else if (connection?.style === 'dotted') {
       strokeDasharray = '2,4';
@@ -218,6 +229,7 @@ const ConnectionEdge = memo(
             stroke: strokeColor,
             strokeWidth: selected ? strokeWidth + 1 : strokeWidth,
             strokeDasharray,
+            opacity: isInactiveBranch ? 0.35 : 1,
           }}
           markerStart={markerStart}
           markerEnd={markerEnd}
@@ -438,7 +450,13 @@ const ConnectionEdge = memo(
                 transform: `translate(-50%, -100%) translate(${sourceX}px, ${sourceY - 10}px)`,
                 pointerEvents: 'none',
               }}
-              className="rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground"
+              className={cn(
+                'rounded px-1 py-0.5 text-xs',
+                isActiveBranch
+                  ? 'bg-violet-500 font-medium text-white'
+                  : 'bg-muted text-muted-foreground',
+                isInactiveBranch && 'opacity-50'
+              )}
             >
               {connection.branch_label}
             </div>

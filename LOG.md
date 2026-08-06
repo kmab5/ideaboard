@@ -3,29 +3,52 @@
 The running record of what shipped, what's next, and the full history. The
 newest release is summarized at the top; the detailed changelog is at the
 bottom, newest first. The version here tracks `package.json` and
-`src/lib/version.ts`.
+`src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
+the files that were added or modified.
 
-**Current version: `0.6.1`** · Status: **MVP complete.** Full security audit passed; 0 known dependency vulnerabilities; rate limiting + automated dependency scanning added.
+**Current version: `0.7.0`** · Status: **MVP complete; v1.1 underway.** First v1.1 feature (Conditional Notes) shipped.
 
 ---
 
-## Latest updates — v0.6.1
+## Latest updates — v0.7.0
 
-- **Rate limiting added** (Upstash Redis) for the two request paths that actually flow through the Next.js server: a strict per-user limit on account deletion, and a general per-IP throttle in middleware. Fails open (disabled, not broken) if Upstash credentials aren't set.
-- **Automated dependency scanning** — CI now runs `pnpm audit --prod --audit-level high` on every push/PR, and Dependabot opens weekly PRs for outdated packages and GitHub Actions versions.
-- **Documented a real architectural limit:** board/note/component mutations and Supabase auth go directly from the browser to Supabase, so no Next.js-side rate limiter can see or throttle them. See `SECURITY.md` for what this does and doesn't cover.
+- **Conditional Notes shipped — the first v1.1 feature.** A new note type that routes to different branches based on live component values (e.g. "only follow this path if `hasKey == true`"). Branches are checked in order with an optional else/default; the canvas highlights the currently active branch's connection live as component values change.
+- Component rule editor supports AND-ed conditions per branch, type-aware inputs (booleans get a true/false picker, list components get their actual choices), and flags branches that reference a deleted component.
+- New keyboard shortcut: `Shift+N` adds a conditional note (`N` still adds a normal note).
 
 ## Upcoming / planned
 
-- **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src` (the main outstanding hardening item).
-- **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes — a real architectural change, tracked as future work, not a quick add.
+- **Technical Notes** (next in the v1.1 order) — the write-side counterpart to conditional notes: a note that sets a component's value when reached.
+- **Multi-board per story**, then **Containers**, then **Export/Import** — in that order (see `docs/MVP.md` for the rationale).
+- **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src`.
+- **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes — tracked as future work.
 - **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle previewing `{{fuel}}` as its current value.
 - **Optional** — error monitoring (Sentry), snap-to-grid.
-- **Post-MVP (v1.1+)** — conditional & technical notes, containers, multi-board per story, export/import; then real-time collaboration and sharing (v1.2).
+- **v1.2** — real-time collaboration and sharing, then version history.
 
 ---
 
 ## Changelog
+
+### [0.7.0] — 2026-08-06
+
+**Conditional Notes (first v1.1 feature)**
+- New note type `conditional`: define one or more branches, each with a label, a target note, and AND-ed conditions against component values (`==`, `!=`, `>`, `>=`, `<`, `<=`, `includes`). Branches are checked in order; an optional else/default branch catches everything else.
+- A branch's target is a real connection, correlated via a new `branch_id` column on `connections` — not a parallel/shadow data structure. Saving branches reconciles actual connections (create/update/delete) to match.
+- Live visualization: the canvas evaluates every conditional note against current component values and highlights the active branch's connection (thicker, solid) while dimming inactive ones (dashed, faded) — updates immediately when a component's value changes, directly addressing the PRD's "hard to see how choices connect" pain point.
+- Rule editor is type-aware: boolean components get a true/false picker, list components show their actual choices, numbers/strings get plain inputs. Branches referencing a deleted component show an inline warning.
+- Added `Shift+N` shortcut and a toolbar button to create a conditional note.
+- 22 new unit tests for the evaluation engine and data parsing (`src/lib/conditions.test.ts`).
+
+**Docs**
+- Guide updated with a new "Conditional notes" section.
+- `MVP.md` updated with v1.1 progress tracking and implementation notes.
+
+**Files changed**
+- Added: `src/lib/conditions.ts`, `src/lib/conditions.test.ts`, `src/components/board/conditional-branch-editor.tsx`, `src/components/board/conditional-note-node.tsx`, `docs/database/migrations/002_conditional_notes.sql`
+- Modified: `src/components/board/canvas.tsx`, `src/components/board/toolbar.tsx`, `src/components/board/connection-edge.tsx`, `src/types/database.ts`, `src/lib/validations/connection.ts`, `docs/database/schema.sql`, `src/app/guide/page.tsx`, `docs/MVP.md`, `src/lib/version.ts`, `package.json`
+
+> **Action required after deploying:** run `docs/database/migrations/002_conditional_notes.sql` in Supabase (adds the `branch_id` column conditional notes depend on).
 
 ### [0.6.1] — 2026-08-06
 

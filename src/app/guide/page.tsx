@@ -194,6 +194,46 @@ const sections = [
     ),
   },
   {
+    id: 'conditional-notes',
+    heading: 'Conditional notes',
+    body: (
+      <>
+        <p>
+          A <strong>conditional note</strong> routes to different notes depending on your
+          components&apos; current values — useful for branches like &ldquo;only show this scene if
+          the player has the key.&rdquo; Add one from the toolbar (or press{' '}
+          <span className="font-mono">Shift+N</span>).
+        </p>
+        <ul>
+          <li>
+            Open <strong>Manage branches</strong> to define one or more branches. Each branch has a
+            label, a target note, and one or more conditions (e.g.{' '}
+            <span className="font-mono">hasKey == true</span>) — all conditions in a branch must be
+            true for it to match.
+          </li>
+          <li>
+            Branches are checked <strong>in order</strong>; the first one that matches wins. Add an{' '}
+            <strong>else / default</strong> branch to catch everything else.
+          </li>
+          <li>
+            The note shows every branch live: the <strong>currently active</strong> branch is
+            highlighted, and its connection on the canvas is drawn thicker and solid — every other
+            branch&apos;s connection is dashed and faded. Change a component&apos;s value in the
+            panel and watch the active path update.
+          </li>
+          <li>
+            If a branch&apos;s condition references a component that&apos;s been deleted, a warning
+            icon appears on that branch.
+          </li>
+        </ul>
+        <Tip>
+          This is a planning and visualization aid — it shows you which path is live for the
+          component values you&apos;ve set, not a runtime story engine.
+        </Tip>
+      </>
+    ),
+  },
+  {
     id: 'undo-redo',
     heading: 'Undo & redo',
     body: (

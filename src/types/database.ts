@@ -199,6 +199,8 @@ export interface Connection {
   curvature: CurvatureType;
   branch_label: string | null;
   branch_order: number | null;
+  /** Correlates with a branch id in the source note's condition_data.branches. */
+  branch_id: string | null;
   created_at: string;
   updated_at: string;
 }
