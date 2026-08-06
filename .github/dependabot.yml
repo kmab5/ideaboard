@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # JavaScript / TypeScript dependencies (pnpm).
+  - package-ecosystem: 'npm' # Dependabot's npm ecosystem also covers pnpm lockfiles.
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 10
+    groups:
+      # Batch low-risk patch/minor bumps into one PR to cut review noise;
+      # anything major stays as its own PR for a deliberate look.
+      minor-and-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+    labels:
+      - 'dependencies'
+
+  # GitHub Actions used by the CI workflow.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    labels:
+      - 'dependencies'
+      - 'ci'
