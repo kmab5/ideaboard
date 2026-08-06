@@ -872,23 +872,32 @@ USING (
     AND auth.uid()::text = (storage.foldername(name))[1]
 );
 
--- NOTE-ATTACHMENTS BUCKET POLICIES (public for note images)
+-- NOTE-ATTACHMENTS BUCKET POLICIES (public-read, owner-scoped writes)
+-- The first folder segment MUST be the uploader's user id. Without this check
+-- any authenticated user could overwrite or delete another user's attachments.
 CREATE POLICY "Users can upload note attachments"
 ON storage.objects FOR INSERT
 WITH CHECK (
     bucket_id = 'note-attachments'
-    AND auth.role() = 'authenticated'
+    AND auth.uid()::text = (storage.foldername(name))[1]
 );
 
 CREATE POLICY "Note attachments are publicly accessible"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'note-attachments');
 
+CREATE POLICY "Users can update their own note attachments"
+ON storage.objects FOR UPDATE
+USING (
+    bucket_id = 'note-attachments'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
 CREATE POLICY "Users can delete their own note attachments"
 ON storage.objects FOR DELETE
 USING (
     bucket_id = 'note-attachments'
-    AND auth.role() = 'authenticated'
+    AND auth.uid()::text = (storage.foldername(name))[1]
 );
 
 -- ============================================================================

@@ -5,27 +5,53 @@ newest release is summarized at the top; the detailed changelog is at the
 bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`.
 
-**Current version: `0.5.0`** · Status: MVP feature-complete, hardening & test depth remaining.
+**Current version: `0.6.0`** · Status: **MVP complete.** Full security audit passed; 0 known dependency vulnerabilities.
 
 ---
 
-## Latest updates — v0.5.0
+## Latest updates — v0.6.0
 
-- **List components are now fully editable.** Open any `list` component to add, rename, reorder, and remove its choices; choices also show as chips on the component card.
-- **New Guide page (`/guide`)** covering every implemented feature, linked from the site header and footer. It carries the current version and is updated each release.
-- **Versioning added to the repo** — a single source of truth in `src/lib/version.ts`, synced with `package.json`, plus this `LOG.md`.
-- **Docs updated** — `MVP.md` milestones reconciled with what's actually shipped (Phase 10 complete, Phase 12 mostly complete, deployment live).
+- **MVP complete.** The last open items — E2E coverage for auth flows and board operations — are now implemented (13 new Playwright tests across `e2e/auth.spec.ts` and `e2e/board.spec.ts`).
+- **Full security audit conducted; 7 findings fixed.** Including a **high-severity cross-tenant flaw** that let any authenticated user delete or overwrite another user's note images. Documented in `SECURITY.md`.
+- **Dependency vulnerabilities: 19 production / 25 total → 0.**
+- **Account deletion implemented** — it was promised in the Privacy Policy, Terms, and Guide but did not exist. Now a real Danger Zone in Settings backed by a server route.
+- **Security headers added** (CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy); `X-Powered-By` removed.
+
+> ⚠️ **Action required after deploying:** run `docs/database/migrations/001_security_hardening.sql` in Supabase, and set `SUPABASE_SERVICE_ROLE_KEY` in Vercel. The storage vulnerability lives in database policies — application code alone does not close it.
 
 ## Upcoming / planned
 
-- **Test depth** — broaden automated coverage beyond unit tests + smoke E2E: auth flows, board CRUD, and component/reference flows.
-- **Components, next steps** — optional *selected value* for list components (an active choice, not just the set), and a note "show values" toggle that previews `{{fuel}}` as its current value.
-- **Optional polish** — error monitoring (Sentry), snap-to-grid on the canvas.
+- **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src` (the main outstanding hardening item).
+- **CI hardening** — add `pnpm audit` and Dependabot to the pipeline; run E2E against a seeded test project.
+- **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle previewing `{{fuel}}` as its current value.
+- **Optional** — error monitoring (Sentry), application-level rate limiting, snap-to-grid.
 - **Post-MVP (v1.1+)** — conditional & technical notes, containers, multi-board per story, export/import; then real-time collaboration and sharing (v1.2).
 
 ---
 
 ## Changelog
+
+### [0.6.0] — 2026-08-06
+
+**Security audit (see `SECURITY.md` for the full report)**
+- **IDB-001 (High):** `note-attachments` storage policies checked only that the caller was authenticated, so any user could delete or overwrite **any other user's** note images. Uploads now namespace under `<user_id>/…` and policies enforce folder ownership.
+- **IDB-002 (Medium):** buckets had no server-side size/MIME limits, making the client-side upload validation bypassable. Limits added; SVG excluded.
+- **IDB-003 (Medium):** no security headers. Added CSP, HSTS, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`; removed `X-Powered-By`.
+- **IDB-004 (Medium, compliance):** account deletion was promised in legal docs but unimplemented. Added `POST /api/account/delete` (session-derived target, storage cleanup, cascade delete) plus a type-`DELETE`-to-confirm Danger Zone.
+- **IDB-005 (Low):** added a same-origin check to the destructive delete endpoint.
+- **IDB-006 (Low):** broadened `.gitignore` to cover all `.env.*` files.
+- **IDB-007 (High, aggregate):** dependency vulnerabilities reduced from 19 production / 25 total to **0**, via `pnpm.overrides`, direct bumps (`uuid`, `@dicebear/*`), and an explicit `vite` pin.
+- Verified clean: RLS on all 11 tables, no `dangerouslySetInnerHTML`/`eval`, no raw-HTML Markdown rendering, parameterized queries, server-verified sessions, open-redirect guard, anti-enumeration on password reset, and no committed secrets.
+
+**MVP completion**
+- Added `e2e/auth.spec.ts` (7 tests: registration validation, generic login errors, anti-enumeration, protected-route redirects, open-redirect guard, logout, deletion confirmation).
+- Added `e2e/board.spec.ts` (6 tests: note creation, Markdown rendering, auto-save across reload, undo, component creation, persistence across navigation).
+- Added `e2e/helpers.ts`; authenticated suites skip unless `E2E_EMAIL`/`E2E_PASSWORD` are set.
+
+**Docs**
+- New `SECURITY.md` (threat model, findings, verified-secure matrix, known limitations, deploy checklist).
+- New `docs/database/migrations/001_security_hardening.sql`.
+- `MVP.md` marked complete.
 
 ### [0.5.0] — 2026-08-04
 

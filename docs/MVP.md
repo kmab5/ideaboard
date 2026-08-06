@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** January 14, 2026 (updated August 4, 2026)
-**Status:** MVP feature-complete — app version `0.5.0`, deployed; hardening & E2E depth remaining. See `LOG.md`.
+**Status:** ✅ **MVP COMPLETE** — app version `0.6.0`, deployed, security-audited. See `LOG.md` and `SECURITY.md`.
 
 ---
 
@@ -656,7 +656,7 @@ docs(api): update authentication endpoints
 
 ---
 
-### Phase 12: Polish & Deploy (Week 12) 🔄 NEARLY COMPLETE
+### Phase 12: Polish & Deploy (Week 12) ✅ COMPLETE
 
 #### 12.1 Error Handling
 
@@ -674,9 +674,9 @@ docs(api): update authentication endpoints
 #### 12.3 Testing
 
 - [x] Unit tests (Vitest) — 50 tests across navigation, upload, avatar, history, validations, references
-- [x] E2E harness (Playwright) — smoke test in place
-- [ ] Test auth flows (E2E) — _remaining_
-- [ ] Test board operations (E2E) — _remaining_
+- [x] E2E harness (Playwright) — smoke tests in place
+- [x] Test auth flows (E2E) — `e2e/auth.spec.ts`, 7 tests
+- [x] Test board operations (E2E) — `e2e/board.spec.ts`, 6 tests
 
 #### 12.4 Deployment
 
@@ -684,9 +684,13 @@ docs(api): update authentication endpoints
 - [x] Set environment variables
 - [x] Deploy to production (live at ideaboard-cs.vercel.app)
 - [x] Test production build (pnpm build successful)
-- [ ] Set up error monitoring (optional)
+- [x] Security audit + hardening (see `SECURITY.md`, 7 findings fixed, 0 dependency vulnerabilities)
+- [x] Account deletion / right to erasure
+- [ ] Set up error monitoring (optional, deferred)
 
-**Remaining for MVP sign-off:** deeper E2E coverage (auth + board + component flows); optional error monitoring and snap-to-grid.
+**MVP is complete.** Remaining items are optional hardening tracked in `SECURITY.md` and `LOG.md`: nonce-based CSP, CI dependency scanning, error monitoring, rate limiting, snap-to-grid.
+
+> **Deploy prerequisites:** run `docs/database/migrations/001_security_hardening.sql` and set `SUPABASE_SERVICE_ROLE_KEY`.
 
 ---
 
