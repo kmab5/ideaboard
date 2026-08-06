@@ -17,6 +17,7 @@ import {
   Undo2,
   Redo2,
   GitBranch,
+  Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -35,6 +36,7 @@ interface ToolbarProps {
   onAddNote: () => void;
   onAddDrawing: () => void;
   onAddConditional: () => void;
+  onAddTechnical: () => void;
   onToolChange: (tool: 'select' | 'pan') => void;
   onToggleGrid: () => void;
   onManualSave?: () => void;
@@ -54,6 +56,7 @@ export function Toolbar({
   onAddNote,
   onAddDrawing,
   onAddConditional,
+  onAddTechnical,
   onToolChange,
   onToggleGrid,
   onManualSave,
@@ -192,6 +195,16 @@ export function Toolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">Add Conditional Note (Shift+N)</TooltipContent>
+          </Tooltip>
+
+          {/* Add Technical Note */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAddTechnical}>
+                <Wrench className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Add Technical Note (Alt+N)</TooltipContent>
           </Tooltip>
 
           <Separator orientation="horizontal" className="w-6" />

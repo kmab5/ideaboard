@@ -6,29 +6,46 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.7.0`** · Status: **MVP complete; v1.1 underway.** First v1.1 feature (Conditional Notes) shipped.
+**Current version: `0.8.0`** · Status: **MVP complete; v1.1 underway.** Conditional and Technical Notes shipped.
 
 ---
 
-## Latest updates — v0.7.0
+## Latest updates — v0.8.0
 
-- **Conditional Notes shipped — the first v1.1 feature.** A new note type that routes to different branches based on live component values (e.g. "only follow this path if `hasKey == true`"). Branches are checked in order with an optional else/default; the canvas highlights the currently active branch's connection live as component values change.
-- Component rule editor supports AND-ed conditions per branch, type-aware inputs (booleans get a true/false picker, list components get their actual choices), and flags branches that reference a deleted component.
-- New keyboard shortcut: `Shift+N` adds a conditional note (`N` still adds a normal note).
+- **Technical Notes shipped** — the write-side counterpart to Conditional Notes. Define one or more component updates (`set`, `add`, `subtract`, `multiply`, `toggle`, `append`); the note previews each change live (`current → new`).
+- **Apply** is a deliberate, explicit action: click it to actually write the computed values to your components — a testing aid for walking through a path, not something that fires automatically.
+- New keyboard shortcut: `Alt+N` (`Option+N` on Mac) adds a technical note.
 
 ## Upcoming / planned
 
-- **Technical Notes** (next in the v1.1 order) — the write-side counterpart to conditional notes: a note that sets a component's value when reached.
-- **Multi-board per story**, then **Containers**, then **Export/Import** — in that order (see `docs/MVP.md` for the rationale).
+- **Multi-board per story** (next in the v1.1 order), then **Containers**, then **Export/Import**.
 - **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src`.
 - **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes — tracked as future work.
 - **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle previewing `{{fuel}}` as its current value.
-- **Optional** — error monitoring (Sentry), snap-to-grid.
+- **Optional** — error monitoring (Sentry), snap-to-grid, one-click undo for a technical note's "Apply".
 - **v1.2** — real-time collaboration and sharing, then version history.
 
 ---
 
 ## Changelog
+
+### [0.8.0] — 2026-08-06
+
+**Technical Notes (second v1.1 feature)**
+- New note type `technical`: define one or more updates against a component — `set`, `add`, `subtract`, `multiply`, `toggle`, `append` — scoped to what makes sense for the component's type (e.g. booleans only get `set`/`toggle`; lists/strings get `append`).
+- Each update previews live: the component's current value and what it would become (e.g. `15 → 25`), per PRD 4.2.1.4's "Change Preview" requirement.
+- **Apply** writes the computed values to the real components through the same path as editing them in the Components panel — deliberately explicit and manual (unlike conditional notes' automatic live evaluation), since this is a testing aid for walking a path, not a runtime engine.
+- Updates referencing a deleted component show an inline warning, matching the pattern already used for conditional-note branches and note references.
+- Added `Alt+N` shortcut (checked via `e.code`, not `e.key`, since Option+N produces a special character on macOS) and a toolbar button.
+- 15 new unit tests for the update engine (`src/lib/technical.test.ts`).
+
+**Docs**
+- Guide updated with a new "Technical notes" section.
+- `MVP.md` updated: v1.1 progress table and implementation notes for both Conditional and Technical Notes.
+
+**Files changed**
+- Added: `src/lib/technical.ts`, `src/lib/technical.test.ts`, `src/components/board/technical-update-editor.tsx`, `src/components/board/technical-note-node.tsx`
+- Modified: `src/components/board/canvas.tsx`, `src/components/board/toolbar.tsx`, `src/app/guide/page.tsx`, `docs/MVP.md`, `src/lib/version.ts`, `package.json`
 
 ### [0.7.0] — 2026-08-06
 

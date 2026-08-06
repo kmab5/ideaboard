@@ -23,6 +23,7 @@ import type { Note, Connection, Board } from '@/types/database';
 import { NoteNode } from './note-node';
 import { DrawingNode } from './drawing-node';
 import { ConditionalNoteNode } from './conditional-note-node';
+import { TechnicalNoteNode } from './technical-note-node';
 import { ConnectionEdge } from './connection-edge';
 import { Toolbar } from './toolbar';
 import { toast } from 'sonner';
@@ -42,12 +43,14 @@ import {
   getActiveBranchId,
   type ConditionalBranch,
 } from '@/lib/conditions';
+import { parseTechnicalData, applyUpdate, type TechnicalUpdate } from '@/lib/technical';
 
 // Custom node types - memoized to prevent recreation warnings
 const defaultNodeTypes = {
   noteNode: NoteNode,
   drawingNode: DrawingNode,
   conditionalNode: ConditionalNoteNode,
+  technicalNode: TechnicalNoteNode,
 };
 
 // Custom edge types - memoized to prevent recreation warnings
@@ -59,6 +62,7 @@ const defaultEdgeTypes = {
 function nodeTypeForNote(type: Note['type']): keyof typeof defaultNodeTypes {
   if (type === 'drawing') return 'drawingNode';
   if (type === 'conditional') return 'conditionalNode';
+  if (type === 'technical') return 'technicalNode';
   return 'noteNode';
 }
 
@@ -225,11 +229,79 @@ function CanvasInner({
     [board.id, notes, connections, onUpdateNote, onCreateConnection, onUpdateConnection, onDeleteConnection, pushAction]
   );
 
+  // Persist a technical note's update list.
+  const handleSaveTechnicalUpdates = useCallback(
+    (noteId: string, updates: TechnicalUpdate[]) => {
+      const previousTechnicalData = notes.find((n) => n.id === noteId)?.technical_data ?? null;
+
+      pushAction({
+        type: 'UPDATE_NOTE',
+        undo: { noteId, previousState: { technical_data: previousTechnicalData } },
+        redo: { noteId, newState: { technical_data: { updates } } },
+      });
+      onUpdateNote(noteId, { technical_data: { updates } });
+    },
+    [notes, onUpdateNote, pushAction]
+  );
+
+  // Apply a technical note's updates to the actual components now — a
+  // testing aid for walking a path (PRD 4.2.1.4), not a runtime engine.
+  // Reads/writes components directly since this is an imperative action, not
+  // something that needs to re-render canvas.tsx on every store change.
+  const handleApplyTechnicalUpdates = useCallback(
+    async (noteId: string) => {
+      const note = notes.find((n) => n.id === noteId);
+      if (!note) return;
+      const { updates } = parseTechnicalData(note.technical_data);
+      if (updates.length === 0) return;
+
+      const { components: currentComponents, updateComponent } = useComponentStore.getState();
+      const componentByName = new Map(currentComponents.map((c) => [c.name.toLowerCase(), c]));
+
+      let applied = 0;
+      const skipped: string[] = [];
+
+      for (const update of updates) {
+        const component = componentByName.get(update.component.toLowerCase());
+        if (!component) {
+          skipped.push(update.component);
+          continue;
+        }
+        const newValue = applyUpdate(component.current_value, update);
+        if (newValue === undefined) {
+          skipped.push(update.component);
+          continue;
+        }
+        try {
+          const { error } = await supabase
+            .from('components')
+            .update({ current_value: newValue })
+            .eq('id', component.id);
+          if (error) throw error;
+          updateComponent(component.id, { current_value: newValue });
+          applied++;
+        } catch (error) {
+          console.error('Failed to apply technical update:', error);
+          skipped.push(update.component);
+        }
+      }
+
+      if (applied > 0) {
+        toast.success(`Applied ${applied} update${applied === 1 ? '' : 's'}`);
+      }
+      if (skipped.length > 0) {
+        toast.error(`Couldn't apply: ${skipped.join(', ')}`);
+      }
+    },
+    [notes, supabase]
+  );
+
   // Convert notes to React Flow nodes
   const notesToNodes = useCallback(
     (notesList: Note[]): Node[] =>
       notesList.map((note) => {
         const isConditional = note.type === 'conditional';
+        const isTechnical = note.type === 'technical';
         const branchTargets: Record<string, string | null> = {};
         if (isConditional) {
           connections
@@ -257,12 +329,27 @@ function CanvasInner({
                     .map((n) => ({ id: n.id, title: n.title })),
                 }
               : {}),
+            ...(isTechnical
+              ? {
+                  onSaveUpdates: handleSaveTechnicalUpdates,
+                  onApplyUpdates: handleApplyTechnicalUpdates,
+                }
+              : {}),
           },
           style: { width: note.width, height: note.height },
           draggable: !note.is_locked,
         };
       }),
-    [onUpdateNote, onDeleteNote, handleImageUpload, connections, notes, handleSaveBranches]
+    [
+      onUpdateNote,
+      onDeleteNote,
+      handleImageUpload,
+      connections,
+      notes,
+      handleSaveBranches,
+      handleSaveTechnicalUpdates,
+      handleApplyTechnicalUpdates,
+    ]
   );
 
   // Live branch evaluation for conditional notes, used to highlight the
@@ -514,6 +601,7 @@ function CanvasInner({
           node.style?.width !== noteData.width || node.style?.height !== noteData.height;
 
         const isConditional = noteData.type === 'conditional';
+        const isTechnical = noteData.type === 'technical';
         const branchTargets: Record<string, string | null> = {};
         if (isConditional) {
           connections
@@ -548,6 +636,12 @@ function CanvasInner({
                     .map((n) => ({ id: n.id, title: n.title })),
                 }
               : {}),
+            ...(isTechnical
+              ? {
+                  onSaveUpdates: handleSaveTechnicalUpdates,
+                  onApplyUpdates: handleApplyTechnicalUpdates,
+                }
+              : {}),
           },
           draggable: !noteData.is_locked,
         };
@@ -567,6 +661,8 @@ function CanvasInner({
     onDeleteNote,
     handleImageUpload,
     handleSaveBranches,
+    handleSaveTechnicalUpdates,
+    handleApplyTechnicalUpdates,
     setNodes,
   ]);
 
@@ -841,6 +937,40 @@ function CanvasInner({
     [board.id, nodes.length, onCreateNote, getViewportCenter, pushAction]
   );
 
+  // Add new technical note at position (starts with no updates; the author
+  // fills those in via "Manage updates" on the node itself).
+  const handleAddTechnicalNote = useCallback(
+    (position?: { x: number; y: number }) => {
+      const pos = position || getViewportCenter();
+
+      const newNote: Partial<Note> = {
+        id: uuidv4(),
+        board_id: board.id,
+        type: 'technical',
+        title: 'Update',
+        content: { blocks: [] },
+        position_x: pos.x,
+        position_y: pos.y,
+        width: 220,
+        height: 180,
+        color: '#FFFFFF',
+        is_collapsed: false,
+        is_locked: false,
+        z_index: nodes.length,
+        technical_data: { updates: [] },
+      };
+
+      pushAction({
+        type: 'CREATE_NOTE',
+        undo: { noteId: newNote.id },
+        redo: { noteId: newNote.id, fullState: newNote as Note },
+      });
+
+      onCreateNote(newNote);
+    },
+    [board.id, nodes.length, onCreateNote, getViewportCenter, pushAction]
+  );
+
   // Zoom controls
   const handleZoomIn = useCallback(() => {
     reactFlowInstance.zoomIn({ duration: 200 });
@@ -902,6 +1032,14 @@ function CanvasInner({
         return;
       }
 
+      // Alt/Option+N: check e.code rather than e.key, since Option+N produces
+      // a special character (e.g. 'ñ') on macOS rather than a plain 'n'.
+      if (e.altKey && e.code === 'KeyN') {
+        e.preventDefault();
+        handleAddTechnicalNote();
+        return;
+      }
+
       switch (e.key.toLowerCase()) {
         case 'v':
           setActiveTool('select');
@@ -941,6 +1079,7 @@ function CanvasInner({
     handleAddNote,
     handleAddDrawing,
     handleAddConditionalNote,
+    handleAddTechnicalNote,
     handleUndo,
     handleRedo,
     handleZoomIn,
@@ -1018,6 +1157,7 @@ function CanvasInner({
             onAddNote={() => handleAddNote()}
             onAddDrawing={() => handleAddDrawing()}
             onAddConditional={() => handleAddConditionalNote()}
+            onAddTechnical={() => handleAddTechnicalNote()}
             onToolChange={setActiveTool}
             onToggleGrid={() => setShowGrid(!showGrid)}
             onManualSave={handleManualSave}

@@ -234,6 +234,43 @@ const sections = [
     ),
   },
   {
+    id: 'technical-notes',
+    heading: 'Technical notes',
+    body: (
+      <>
+        <p>
+          A <strong>technical note</strong> is the write side of a conditional note: it changes a
+          component&apos;s value when a reader reaches it (e.g. adding to{' '}
+          <span className="font-mono">gold</span>, or toggling{' '}
+          <span className="font-mono">hasKey</span> to true). Add one from the toolbar or press{' '}
+          <span className="font-mono">Alt+N</span> (<span className="font-mono">Option+N</span> on
+          Mac).
+        </p>
+        <ul>
+          <li>
+            Open <strong>Manage updates</strong> to add one or more changes. Each update picks a
+            component and an operation: <strong>Set</strong>, <strong>Add</strong>,{' '}
+            <strong>Subtract</strong>, <strong>Multiply</strong>, <strong>Toggle</strong>, or{' '}
+            <strong>Append</strong> — available operations depend on the component&apos;s type.
+          </li>
+          <li>
+            The note previews each change live, showing the current value and what it would become
+            (e.g. <span className="font-mono">15 → 25</span>).
+          </li>
+          <li>
+            Click <strong>Apply</strong> to actually run the updates on the components now — useful
+            for walking through a path and testing how your variables evolve. This edits the real
+            component values, the same as editing them in the Components panel.
+          </li>
+        </ul>
+        <Tip>
+          Applying is for testing, not permanent — you can always adjust a value afterward in the
+          Components panel, or use its <strong>Reset to default</strong> action.
+        </Tip>
+      </>
+    ),
+  },
+  {
     id: 'undo-redo',
     heading: 'Undo & redo',
     body: (

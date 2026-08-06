@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** January 14, 2026 (updated August 4, 2026)
-**Status:** ✅ **MVP COMPLETE** — app version `0.6.0`, deployed, security-audited. See `LOG.md` and `SECURITY.md`.
+**Status:** ✅ **MVP COMPLETE** — app version `0.8.0`, deployed, security-audited. v1.1 underway. See `LOG.md` and `SECURITY.md`.
 
 ---
 
@@ -13,7 +13,7 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 | Feature | Status |
 | --------- | -------- |
 | Conditional Notes | ✅ Shipped (v0.7.0) |
-| Technical Notes | Not started |
+| Technical Notes | ✅ Shipped (v0.8.0) |
 | Multi-board per story | Not started |
 | Containers | Not started |
 | Export/Import | Not started |
@@ -25,6 +25,14 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 - Branches are evaluated in order; first match wins. An optional else/default branch catches everything else.
 - The canvas highlights the currently active branch's connection (thicker, solid) and dims inactive branches (dashed, faded) — this is a live visualization, re-evaluated whenever a component's value changes, not a runtime story engine.
 - Deliberately out of scope for this pass: nested/compound OR logic (only AND within a branch; use multiple branches for OR-like behavior), and validating that every branch has a target before considering a conditional note "complete" (a branch with no target simply has no connection yet).
+
+### Technical Notes — implementation notes
+
+- New note type `technical`, rendered by `TechnicalNoteNode`. Updates are defined in `technical_data` (see `src/lib/technical.ts` for the shape and engine) — the write-side counterpart to a conditional note's read-only branches.
+- Six operations: `set`, `add`, `subtract`, `multiply`, `toggle`, `append`, scoped per component type (e.g. booleans only get `set`/`toggle`).
+- The note previews the computed new value live for every update (`current → new`), matching PRD 4.2.1.4's "Change Preview" requirement.
+- **Apply** is a deliberate, explicit action (not automatic/live like conditional-note evaluation): clicking it writes the computed values to the actual components, the same write path as editing a value in the Components panel. This is a testing aid for walking a path manually, not a runtime engine — nothing applies itself.
+- Deliberately out of scope for this pass: undo support specifically for "Apply" (a component's prior value can be restored via the Components panel's Reset-to-default or a manual edit, but there's no one-click "undo this apply").
 
 ---
 
@@ -57,7 +65,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | Feature | Target Version |
 | --------- | ---------------- |
 | Conditional Notes | ✅ Shipped in v0.7.0 (see LOG.md) |
-| Technical Notes | v1.1 |
+| Technical Notes | ✅ Shipped in v0.8.0 (see LOG.md) |
 | Containers | v1.1 |
 | Multi-board per story | v1.1 |
 | Export/Import (.ibs full) | v1.1 |
