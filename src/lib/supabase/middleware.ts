@@ -1,7 +1,19 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { checkGeneralLimit } from '@/lib/rate-limit';
 
 export async function updateSession(request: NextRequest) {
+  // General per-IP throttle for the server itself (basic abuse/DoS
+  // protection). No-ops safely if Upstash isn't configured. Note: this only
+  // covers requests to THIS Next.js server — board/note writes and Supabase
+  // auth calls go directly from the browser to Supabase and aren't covered
+  // (see SECURITY.md).
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const { success } = await checkGeneralLimit(ip);
+  if (!success) {
+    return new NextResponse('Too many requests', { status: 429 });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

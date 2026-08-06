@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
+import { checkAccountDeleteLimit } from '@/lib/rate-limit';
 
 /**
  * Permanently delete the signed-in user's account.
@@ -39,6 +40,16 @@ export async function POST(request: Request) {
 
   if (authError || !user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  // Keyed by user id (not IP): this is a rare, deliberate, destructive action,
+  // so a handful per hour is generous for a real user and blocks scripted abuse.
+  const { success } = await checkAccountDeleteLimit(user.id);
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many deletion attempts. Please try again later.' },
+      { status: 429 }
+    );
   }
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
