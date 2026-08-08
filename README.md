@@ -2,7 +2,7 @@
 
 A visual whiteboard application for organizing ideas, creating mind maps, and building interactive narratives.
 
-![IdeaBoard](src/app/icon.png)
+![IdeaBoard](public/icon.png)
 
 ## Features
 

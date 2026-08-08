@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { CONTAINER_COLORS } from '@/lib/constants';
+import { sanitizeResize } from '@/lib/containers';
 
 export interface ContainerNodeData {
   container: Container;
@@ -48,16 +49,15 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
         minHeight={160}
         handleStyle={{ width: 8, height: 8 }}
         lineStyle={{ borderColor: color }}
-        // Authoritative size from the user's drag. Persisting here (rather than
-        // from React Flow's measurement-driven dimension changes) is what keeps
-        // containers from shrinking on their own.
+        // Authoritative size from the user's drag. Persisting here — rather
+        // than from React Flow's measurement-driven dimension changes, which
+        // are rounded by zoom and made containers creep smaller — is what makes
+        // a resize stick. Sanitized so a missing x/y can't write NaN.
         onResizeEnd={(_event, params) =>
-          onUpdate(container.id, {
-            width: Math.round(params.width),
-            height: Math.round(params.height),
-            position_x: Math.round(params.x),
-            position_y: Math.round(params.y),
-          })
+          onUpdate(
+            container.id,
+            sanitizeResize(params, { width: container.width, height: container.height })
+          )
         }
       />
 
@@ -68,10 +68,10 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
         )}
         style={{
           borderColor: color,
-          // Pin to the stored size so a re-measure can never shrink the box.
-          width: container.width,
-          height: container.height,
-          // Tint is deliberately faint so notes on top stay readable.
+          // Fill the node wrapper (h-full/w-full above). Setting an explicit
+          // width/height here would override those and stop the box following
+          // the resize handles, which looks exactly like the resize being
+          // rejected. The wrapper's size comes from the stored dimensions.
           backgroundColor: `${color}14`,
         }}
       >

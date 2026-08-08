@@ -13,7 +13,10 @@ export type HistoryActionType =
   | 'UPDATE_CONNECTION'
   | 'DELETE_CONNECTION'
   | 'MOVE_NOTE'
-  | 'RESIZE_NOTE';
+  | 'RESIZE_NOTE'
+  // Applying a technical note writes several component values at once; it's
+  // recorded as a single entry so one undo restores all of them.
+  | 'APPLY_TECHNICAL';
 
 // Represents a single undoable action
 export interface HistoryAction {
@@ -25,6 +28,8 @@ export interface HistoryAction {
     connectionId?: string;
     previousState?: Partial<Note> | Partial<Connection>;
     fullState?: Note | Connection;
+    /** For APPLY_TECHNICAL: component id -> value before the apply. */
+    componentValues?: { componentId: string; value: unknown }[];
   };
   // Data needed to redo the action
   redo: {
@@ -32,6 +37,8 @@ export interface HistoryAction {
     connectionId?: string;
     newState?: Partial<Note> | Partial<Connection>;
     fullState?: Note | Connection;
+    /** For APPLY_TECHNICAL: component id -> value after the apply. */
+    componentValues?: { componentId: string; value: unknown }[];
   };
 }
 

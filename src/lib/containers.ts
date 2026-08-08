@@ -144,3 +144,42 @@ export function uniqueContainerName(base: string, existingNames: Iterable<string
   }
   return `${base} ${suffix}`;
 }
+
+export interface ResizeResult {
+  width: number;
+  height: number;
+  position_x?: number;
+  position_y?: number;
+}
+
+/**
+ * Turn a resize callback's params into a safe database patch.
+ *
+ * Guards against two real failure modes:
+ * - a non-finite width/height (or one below the minimum) producing a collapsed
+ *   or NaN size, which reads to the user as "the resize was rejected";
+ * - a missing x/y, which `Math.round` would turn into NaN and write as a
+ *   garbage position. Position is simply omitted when it isn't supplied.
+ */
+export function sanitizeResize(
+  params: { width?: number; height?: number; x?: number; y?: number },
+  current: { width: number; height: number },
+  min: { width: number; height: number } = { width: 200, height: 160 }
+): ResizeResult {
+  const width =
+    Number.isFinite(params.width) && (params.width as number) > 0
+      ? Math.max(min.width, Math.round(params.width as number))
+      : current.width;
+
+  const height =
+    Number.isFinite(params.height) && (params.height as number) > 0
+      ? Math.max(min.height, Math.round(params.height as number))
+      : current.height;
+
+  const result: ResizeResult = { width, height };
+
+  if (Number.isFinite(params.x)) result.position_x = Math.round(params.x as number);
+  if (Number.isFinite(params.y)) result.position_y = Math.round(params.y as number);
+
+  return result;
+}

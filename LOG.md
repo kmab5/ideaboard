@@ -6,29 +6,55 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.12.0`** · Status: **MVP complete · v1.1 complete.**
+**Current version: `0.13.0`** · Status: MVP complete · v1.1 complete · hardening pass.
 
 ---
 
-## Latest updates — v0.12.0
+## Latest updates — v0.13.0
 
-- **Export/Import shipped — v1.1 is now complete.** Export any story to a single `.ideaboard.json` file from its menu on the dashboard; import one back with the new **Import** button.
-- An export contains everything: the story, all its boards, notes, connections, containers, and components. Conditional branches, technical updates, and container groupings all survive the round trip.
-- **Importing always creates a new story** with fresh IDs — nothing you already have is overwritten or merged into. You can rename during import and get warned about duplicate titles.
-- The import dialog previews what's in the file (boards, notes, connections, containers, components) before anything is created.
+- **Fixed: your middleware was never running.** `middleware.ts` was at the project root, but Next.js expects `src/middleware.ts` when a project uses a `src/` directory — so it was silently ignored, and had been since the project began. Route protection, session refresh, and the per-IP rate limiting from v0.6.1 were all inert. Now verified working.
+- **Fixed: container resizing sticks.** The previous fix pinned the box to its stored size, which stopped it following the resize handles at all — it looked like every resize was rejected. Sizes now persist correctly and survive reload.
+- **Snap to grid** — toolbar toggle or `Shift+G`, independent of grid visibility.
+- **One-click undo for a technical note's Apply** — a single `Ctrl+Z` restores every component the note changed.
+- **Write-path rate limiting** — board writes go straight from your browser to Supabase, so they're now limited in the database itself (600/min per user) rather than by a server that never sees them.
+
+> ⚠️ **Action required after deploying:** run `docs/database/migrations/004_write_rate_limiting.sql` in Supabase.
 
 ## Upcoming / planned
 
+- **Deferred v1.1 features (not started):** board linking (`#boardname`) and cross-board navigation; the Container Panel (PRD 4.7.3), container references and collapse/expand; board folders, search, and the overview dashboard.
+- **Nonce-based CSP** — built and reverted this release; needs a decision on trading static rendering for it (see `SECURITY.md`).
 - **v1.2** — sharing & permissions, then real-time collaboration, then version history.
-- **Deferred from v1.1:** board linking (`#boardname`) and cross-board navigation; the Container Panel (PRD 4.7.3), container references and collapse/expand; board folders, search, and the overview dashboard; `.ibs` binary export and bulk export/import.
-- **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src`.
-- **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes.
-- **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle.
-- **Optional** — error monitoring (Sentry), snap-to-grid, one-click undo for a technical note's "Apply".
+- **Components** — optional *selected value* for list components, and a note "show values" toggle.
+- **Optional** — error monitoring (Sentry).
 
 ---
 
 ## Changelog
+
+### [0.13.0] — 2026-08-08
+
+**Fixes**
+- **Middleware was never executing (security-relevant).** `middleware.ts` lived at the project root; Next.js expects `src/middleware.ts` in a `src/`-directory project and ignored it silently. Caught by observing that `/stories` returned 200 instead of redirecting, and that no Middleware bundle appeared in any build. Route protection, session refresh, and the v0.6.1 per-IP rate limiting had therefore never run. RLS and per-page auth checks meant nothing was actually exposed, but a whole defence-in-depth layer was dead. Verified after the fix: `/stories` and `/settings` return `307 → /login`, build reports `ƒ Middleware`.
+- **Container resizing now sticks.** The v0.11.0 fix set an explicit `width`/`height` on the container's inner div to stop it shrinking — but `NodeResizer` resizes the *node wrapper*, so pinning the inner box meant it never followed the handles, which read as the resize being rejected outright. The inner box now fills the wrapper, and the resize result is run through a new `sanitizeResize` helper that clamps to the minimum, ignores non-finite values, and omits position rather than writing `NaN` when the resize callback doesn't supply `x`/`y`. 6 new tests.
+
+**Features**
+- **Snap to grid** — toolbar toggle and `Shift+G`, deliberately separate from grid *visibility* so you can align to an invisible grid or see dots without snapping. Snaps to the same 20px spacing as the dot background.
+- **One-click undo for a technical note's Apply** — new `APPLY_TECHNICAL` history action records each affected component's value before and after, so a single undo restores them all. Capture is per-component, so several updates to the same component still restore the original value. Toast now hints "Ctrl+Z to undo".
+- **Write-path rate limiting (`004_write_rate_limiting.sql`)** — closes the gap documented since v0.6.1. Enforced by a Postgres trigger on notes/connections/containers/components rather than by proxying mutations through API routes, which would have added latency to every debounced save and required rewriting the optimistic-update path. 600 writes/minute per user; DELETE exempt so cleanup always works; counters self-prune. Being in the database, it covers every client including direct REST API use — the exact case a server-side limiter would miss. Surfaced via `db-errors.ts` as "Too many changes at once" instead of a raw database error (5 tests).
+
+**Nonce-based CSP — built, tested, reverted (deliberate)**
+- Implemented per-request nonces in middleware with `'strict-dynamic'`, and confirmed the header emitted correctly with no `'unsafe-inline'`.
+- Then measured the served HTML: statically prerendered pages ship **20 script tags with zero nonces**, because Next.js can only inject nonces into dynamically rendered pages. Under `'strict-dynamic'` all of them would be blocked and the app would not load.
+- Reverted to the previously verified policy rather than ship a CSP that breaks the app. Adopting nonces requires `export const dynamic = 'force-dynamic'` app-wide, trading the public pages' static rendering for the mitigation — a product decision, now documented in `SECURITY.md` instead of made silently.
+
+**Not implemented this release**
+- The deferred v1.1 features (board linking, Container Panel, container references, collapse/expand, board folders/search/overview) were not started.
+
+**Files changed**
+- Added: `docs/database/migrations/004_write_rate_limiting.sql`, `src/lib/db-errors.ts`, `src/lib/db-errors.test.ts`
+- Moved: `middleware.ts` → `src/middleware.ts`
+- Modified: `src/components/board/container-node.tsx`, `src/components/board/canvas.tsx`, `src/components/board/toolbar.tsx`, `src/lib/containers.ts`, `src/lib/containers.test.ts`, `src/lib/constants.ts`, `src/lib/store/historyStore.ts`, `src/app/(board)/board/[id]/page.tsx`, `next.config.mjs`, `SECURITY.md`, `src/lib/version.ts`, `package.json`
 
 ### [0.12.0] — 2026-08-08
 

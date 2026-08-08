@@ -19,6 +19,7 @@ import {
   GitBranch,
   Wrench,
   Box,
+  Magnet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -28,6 +29,7 @@ import { cn } from '@/lib/utils';
 interface ToolbarProps {
   zoom: number;
   showGrid: boolean;
+  snapToGrid: boolean;
   activeTool: 'select' | 'pan';
   canUndo: boolean;
   canRedo: boolean;
@@ -41,6 +43,7 @@ interface ToolbarProps {
   onAddContainer: () => void;
   onToolChange: (tool: 'select' | 'pan') => void;
   onToggleGrid: () => void;
+  onToggleSnapToGrid: () => void;
   onManualSave?: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -49,6 +52,7 @@ interface ToolbarProps {
 export function Toolbar({
   zoom,
   showGrid,
+  snapToGrid,
   activeTool,
   canUndo,
   canRedo,
@@ -62,6 +66,7 @@ export function Toolbar({
   onAddContainer,
   onToolChange,
   onToggleGrid,
+  onToggleSnapToGrid,
   onManualSave,
   onUndo,
   onRedo,
@@ -267,6 +272,21 @@ export function Toolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">Toggle Grid (G)</TooltipContent>
+          </Tooltip>
+
+          {/* Snap to Grid */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={snapToGrid ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={onToggleSnapToGrid}
+              >
+                <Magnet className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Snap to Grid (Shift+G)</TooltipContent>
           </Tooltip>
 
           <Separator orientation="horizontal" className="w-6" />

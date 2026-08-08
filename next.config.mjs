@@ -6,9 +6,13 @@
 const SUPABASE_ORIGINS = 'https://*.supabase.co wss://*.supabase.co';
 const VERCEL_ANALYTICS = 'https://va.vercel-scripts.com https://vitals.vercel-insights.com';
 
-// NOTE: 'unsafe-inline'/'unsafe-eval' in script-src are required by Next.js's
-// inline bootstrap and dev-time refresh. Tightening this to a nonce-based
-// policy is tracked as a hardening follow-up in SECURITY.md.
+// NOTE on 'unsafe-inline'/'unsafe-eval' in script-src: a nonce-based policy was
+// implemented and then reverted, because Next.js can only inject per-request
+// nonces into *dynamically rendered* pages. This app statically prerenders its
+// public pages, whose script tags would then carry no nonce and be blocked
+// outright by 'strict-dynamic'. Adopting a nonce policy requires opting the
+// whole app out of static rendering — a real trade-off, documented in
+// SECURITY.md rather than made silently.
 const csp = [
   `default-src 'self'`,
   `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${VERCEL_ANALYTICS}`,
@@ -18,7 +22,6 @@ const csp = [
   `connect-src 'self' ${SUPABASE_ORIGINS} ${VERCEL_ANALYTICS}`,
   `media-src 'self' blob:`,
   `worker-src 'self' blob:`,
-  // Clickjacking protection (modern equivalent of X-Frame-Options).
   `frame-ancestors 'none'`,
   `frame-src 'none'`,
   `object-src 'none'`,
@@ -29,7 +32,7 @@ const csp = [
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: csp },
-  // Defense in depth for older browsers that ignore frame-ancestors.
+  // Clickjacking protection; frame-ancestors in the CSP covers modern browsers.
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

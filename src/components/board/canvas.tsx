@@ -38,6 +38,7 @@ import {
   DEFAULT_NOTE_SIZE,
   DEFAULT_DRAWING_SIZE,
   DEFAULT_CONTAINER_SIZE,
+  SNAP_GRID,
   randomFrom,
 } from '@/lib/constants';
 import {
@@ -273,6 +274,8 @@ function CanvasInner({
 
       let applied = 0;
       const skipped: string[] = [];
+      const before: { componentId: string; value: unknown }[] = [];
+      const after: { componentId: string; value: unknown }[] = [];
 
       for (const update of updates) {
         const component = componentByName.get(update.component.toLowerCase());
@@ -292,6 +295,14 @@ function CanvasInner({
             .eq('id', component.id);
           if (error) throw error;
           updateComponent(component.id, { current_value: newValue });
+          // Capture the pre-apply value once per component, so undoing a
+          // sequence of updates to the same component restores the original.
+          if (!before.some((b) => b.componentId === component.id)) {
+            before.push({ componentId: component.id, value: component.current_value });
+          }
+          const existingAfter = after.find((a) => a.componentId === component.id);
+          if (existingAfter) existingAfter.value = newValue;
+          else after.push({ componentId: component.id, value: newValue });
           applied++;
         } catch (error) {
           console.error('Failed to apply technical update:', error);
@@ -300,13 +311,20 @@ function CanvasInner({
       }
 
       if (applied > 0) {
-        toast.success(`Applied ${applied} update${applied === 1 ? '' : 's'}`);
+        pushAction({
+          type: 'APPLY_TECHNICAL',
+          undo: { componentValues: before },
+          redo: { componentValues: after },
+        });
+        toast.success(`Applied ${applied} update${applied === 1 ? '' : 's'}`, {
+          description: 'Ctrl+Z to undo',
+        });
       }
       if (skipped.length > 0) {
         toast.error(`Couldn't apply: ${skipped.join(', ')}`);
       }
     },
-    [notes, supabase]
+    [notes, supabase, pushAction]
   );
 
   // Convert notes to React Flow nodes
@@ -465,9 +483,34 @@ function CanvasInner({
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [activeTool, setActiveTool] = useState<'select' | 'pan'>('select');
   const [showGrid, setShowGrid] = useState(true);
+  // Snap-to-grid is separate from grid *visibility*: you can align to an
+  // invisible grid, or see dots without snapping.
+  const [snapToGrid, setSnapToGrid] = useState(false);
   const [zoom, setZoom] = useState(board.viewport_zoom);
 
   // Handle undo
+  // Restore a set of component values (used by APPLY_TECHNICAL undo/redo).
+  // Writes go through the same path as editing a value in the Components panel.
+  const restoreComponentValues = useCallback(
+    async (values: { componentId: string; value: unknown }[]) => {
+      const { updateComponent } = useComponentStore.getState();
+      for (const { componentId, value } of values) {
+        try {
+          const { error } = await supabase
+            .from('components')
+            .update({ current_value: value })
+            .eq('id', componentId);
+          if (error) throw error;
+          updateComponent(componentId, { current_value: value });
+        } catch (error) {
+          console.error('Failed to restore component value:', error);
+          toast.error('Could not fully undo the component change');
+        }
+      }
+    },
+    [supabase]
+  );
+
   const handleUndo = useCallback(() => {
     const action = undoAction();
     if (!action) return;
@@ -516,11 +559,18 @@ function CanvasInner({
           );
         }
         break;
+      case 'APPLY_TECHNICAL':
+        // Undo apply = put every component back to its pre-apply value.
+        if (action.undo.componentValues) {
+          void restoreComponentValues(action.undo.componentValues);
+        }
+        break;
     }
 
     setIsUndoingOrRedoing(false);
     toast.success('Undone');
   }, [
+    restoreComponentValues,
     undoAction,
     setIsUndoingOrRedoing,
     onDeleteNote,
@@ -577,11 +627,18 @@ function CanvasInner({
           onUpdateConnection(action.redo.connectionId, action.redo.newState as Partial<Connection>);
         }
         break;
+      case 'APPLY_TECHNICAL':
+        // Redo apply = re-write the post-apply component values.
+        if (action.redo.componentValues) {
+          void restoreComponentValues(action.redo.componentValues);
+        }
+        break;
     }
 
     setIsUndoingOrRedoing(false);
     toast.success('Redone');
   }, [
+    restoreComponentValues,
     redoAction,
     setIsUndoingOrRedoing,
     onDeleteNote,
@@ -1352,6 +1409,10 @@ function CanvasInner({
           handleAddContainer();
           break;
         case 'g':
+          if (e.shiftKey) {
+            setSnapToGrid((v) => !v);
+            break;
+          }
           setShowGrid((g) => !g);
           break;
         case '+':
@@ -1395,6 +1456,8 @@ function CanvasInner({
         onNodeDragStop={handleNodeDragStop}
         onPaneClick={undefined}
         nodeTypes={nodeTypes}
+        snapToGrid={snapToGrid}
+        snapGrid={SNAP_GRID}
         edgeTypes={edgeTypes}
         connectOnClick={true}
         defaultViewport={{
@@ -1454,6 +1517,8 @@ function CanvasInner({
             onAddConditional={() => handleAddConditionalNote()}
             onAddTechnical={() => handleAddTechnicalNote()}
             onAddContainer={handleAddContainer}
+            snapToGrid={snapToGrid}
+            onToggleSnapToGrid={() => setSnapToGrid((v) => !v)}
             onToolChange={setActiveTool}
             onToggleGrid={() => setShowGrid(!showGrid)}
             onManualSave={handleManualSave}

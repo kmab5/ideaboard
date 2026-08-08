@@ -7,6 +7,7 @@ import {
   membershipChanges,
   boundsAroundNotes,
   uniqueContainerName,
+  sanitizeResize,
 } from './containers';
 
 const container = (id: string, x: number, y: number, width: number, height: number, z = 0) => ({
@@ -152,5 +153,48 @@ describe('uniqueContainerName', () => {
 
   it('is case-insensitive, matching a case-insensitive uniqueness expectation', () => {
     expect(uniqueContainerName('act 1', ['ACT 1'])).toBe('act 1 2');
+  });
+});
+
+describe('sanitizeResize', () => {
+  const current = { width: 400, height: 300 };
+
+  it('rounds and keeps a valid resize', () => {
+    expect(sanitizeResize({ width: 500.4, height: 320.6, x: 10.2, y: 20.8 }, current)).toEqual({
+      width: 500,
+      height: 321,
+      position_x: 10,
+      position_y: 21,
+    });
+  });
+
+  it('falls back to the current size when width/height are missing', () => {
+    expect(sanitizeResize({}, current)).toEqual({ width: 400, height: 300 });
+  });
+
+  it('ignores NaN and non-finite dimensions rather than writing them', () => {
+    expect(sanitizeResize({ width: NaN, height: Infinity }, current)).toEqual({
+      width: 400,
+      height: 300,
+    });
+  });
+
+  it('omits position entirely when x/y are absent, instead of writing NaN', () => {
+    const result = sanitizeResize({ width: 500, height: 400 }, current);
+    expect(result.position_x).toBeUndefined();
+    expect(result.position_y).toBeUndefined();
+  });
+
+  it('clamps below-minimum sizes up to the minimum', () => {
+    expect(sanitizeResize({ width: 10, height: 10 }, current)).toEqual({
+      width: 200,
+      height: 160,
+    });
+  });
+
+  it('accepts a zero position, which is a legitimate coordinate', () => {
+    const result = sanitizeResize({ width: 500, height: 400, x: 0, y: 0 }, current);
+    expect(result.position_x).toBe(0);
+    expect(result.position_y).toBe(0);
   });
 });

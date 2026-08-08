@@ -2,7 +2,7 @@
 
 Security posture, audit findings, and reporting process for IdeaBoard.
 
-**Last full audit:** August 8, 2026 (v0.11.0) — previous full audit August 6, 2026 (v0.6.0)
+**Last full audit:** August 8, 2026 (v0.13.0) — previous full audit August 6, 2026 (v0.6.0)
 **Audit scope:** dependencies, authentication & session handling, authorization (RLS), storage, input validation, XSS/injection surfaces, HTTP headers, secret hygiene, and privacy/compliance obligations.
 
 ---
@@ -114,6 +114,22 @@ All findings below were discovered during the v0.6.0 audit and are **fixed** unl
 
 **Fix:** `maxLength` on both inputs, plus a new `src/lib/validations/container.ts` Zod schema mirroring the database constraints (name length, hex colour format, opacity range), bringing containers in line with every other entity.
 
+### IDB-010 — Middleware was never executing · **Medium** · Fixed
+
+**What:** `middleware.ts` sat at the project root, but this project uses a `src/` directory — Next.js expects `src/middleware.ts` in that layout and silently ignored the file. Confirmed empirically: `/stories` returned **200 instead of redirecting**, and the production build never listed a Middleware bundle.
+
+**Impact:** An entire security layer had been inert since the project began — middleware route protection, session refresh, and the per-IP rate limiting added in v0.6.1 all never ran. Not an open door in practice: pages perform their own auth checks and Row Level Security remains the real authorization boundary, so no data was reachable without a valid session. But defence-in-depth was absent and the rate limiter documented in this file was doing nothing.
+
+**Fix:** moved to `src/middleware.ts`. Verified live: `/stories` and `/settings` now return `307 → /login`, and the build reports `ƒ Middleware`.
+
+### IDB-011 — Write path had no rate limiting · **Low** · Fixed
+
+**What:** Board writes (notes, connections, containers, components) go **directly** from the browser to Supabase and never traverse the Next.js server, so no middleware limiter could see them. Previously documented here as an open architectural gap.
+
+**Fix:** enforced in Postgres instead of by proxying every mutation through an API route (which would have added latency to every debounced save and required rewriting the optimistic-update path). Migration `004_write_rate_limiting.sql` adds a `BEFORE INSERT OR UPDATE` trigger on the four write-heavy tables: 600 writes/minute per user, generous enough that normal authoring and story import never trip it. DELETE is exempt so a user can always clean up their own data. Because it lives in the database, it covers **every** client — including someone driving the REST API directly, which is precisely the case a server-side limiter would have missed. Surfaced in the UI as "Too many changes at once" rather than a raw database error.
+
+> **Action required:** run the migration.
+
 ---
 
 ## Verified secure (no action needed)
@@ -139,8 +155,8 @@ These were tested during the audit and found sound:
 
 Honest disclosure of what is *not* yet addressed:
 
-1. **CSP uses `'unsafe-inline'` and `'unsafe-eval'` in `script-src`.** Next.js's inline bootstrap requires this without a nonce-based setup. Moving to per-request nonces via middleware is the main outstanding hardening item — it would make the CSP a real XSS mitigation rather than a partial one.
-2. **Rate limiting has a real architectural gap.** Board/note/component mutations and Supabase auth calls (`supabase.auth.signInWithPassword`, `supabase.from('notes').insert(...)`) go **directly from the browser to Supabase** — they never pass through this Next.js server, so no server-side rate limiter (ours or anyone else's) can see or throttle them. What's implemented (`src/lib/rate-limit.ts`, Upstash Redis) covers only what's real to cover: a strict per-user limit on `/api/account/delete`, and a general per-IP throttle on all requests in middleware. Supabase's own auth rate limits (configurable in its dashboard) are the actual protection for login/signup abuse today. Closing this gap for board writes would require proxying mutations through Next.js API routes — a real architectural change, not a quick add.
+1. **CSP still uses `'unsafe-inline'`/`'unsafe-eval'` in `script-src` — a nonce policy was built, tested, and deliberately reverted.** Next.js can only inject per-request nonces into **dynamically rendered** pages. This app statically prerenders its public pages, and measurement confirmed the prerendered HTML ships **20 script tags with zero nonces**; under `'strict-dynamic'` every one would be blocked and the app would not load. Adopting a nonce CSP therefore requires opting the entire app out of static rendering (`export const dynamic = 'force-dynamic'`), trading the performance of the public pages for the XSS mitigation. That is a product trade-off, so it is documented here rather than made silently. The machinery is straightforward to reinstate if that trade is wanted; it needs verification in a real browser either way.
+2. **Board writes are now rate limited in the database** (see IDB-011). Supabase *auth* calls (`signInWithPassword`, signup) still bypass this app entirely; Supabase's own auth rate limits, configurable in its dashboard, are the protection there.
 3. **Dependency scanning is now automated.** CI runs `pnpm audit --prod --audit-level high` on every push/PR, and Dependabot (`​.github/dependabot.yml`) opens weekly PRs for outdated packages (patch/minor batched together; majors reviewed individually) and GitHub Actions versions.
 4. **No error monitoring.** Server-side failures are `console.error` only. Sentry or similar would improve incident response.
 5. **Undo/redo history is in-memory** and not persisted — not a security issue, but note that unsaved history is lost on reload.

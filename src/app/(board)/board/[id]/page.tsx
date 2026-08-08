@@ -10,6 +10,7 @@ import { useStoryStore, useComponentStore } from '@/lib/store';
 import { extractReferenceNames } from '@/lib/references';
 import { cloneBoardContents, resolveActiveBoard } from '@/lib/boards';
 import { uniqueContainerName, notesInContainer } from '@/lib/containers';
+import { friendlyDbError } from '@/lib/db-errors';
 import type { Board, Note, Connection, Container } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Canvas, BoardTabs } from '@/components/board';
@@ -400,7 +401,7 @@ export default function BoardPage() {
         if (error) throw error;
       } catch (error) {
         console.error('Error creating container:', error);
-        toast.error('Failed to create container');
+        toast.error(friendlyDbError(error, 'Failed to create container'));
         setContainers((prev) => prev.filter((c) => c.id !== container.id));
       }
     },
@@ -423,7 +424,7 @@ export default function BoardPage() {
         if (error) throw error;
       } catch (error) {
         console.error('Error updating container:', error);
-        toast.error('Failed to save container');
+        toast.error(friendlyDbError(error, 'Failed to save container'));
         if (previous) {
           setContainers((prev) => prev.map((c) => (c.id === id ? previous : c)));
         }
@@ -566,7 +567,7 @@ export default function BoardPage() {
         }
       } catch (error) {
         console.error('Error updating note:', error);
-        toast.error('Failed to save changes');
+        toast.error(friendlyDbError(error, 'Failed to save changes'));
         if (previous) {
           setNotes((prev) => prev.map((note) => (note.id === id ? previous : note)));
         }
@@ -593,7 +594,7 @@ export default function BoardPage() {
         if (error) throw error;
       } catch (error) {
         console.error('Error deleting note:', error);
-        toast.error('Failed to delete note');
+        toast.error(friendlyDbError(error, 'Failed to delete note'));
         // Restore the note and any connections that were removed with it.
         if (previousNote) {
           setNotes((prev) => [...prev, previousNote]);
@@ -621,7 +622,7 @@ export default function BoardPage() {
         if (error) throw error;
       } catch (error) {
         console.error('Error creating note:', error);
-        toast.error('Failed to create note');
+        toast.error(friendlyDbError(error, 'Failed to create note'));
         setNotes((prev) => prev.filter((n) => n.id !== note.id));
       }
     },
@@ -647,7 +648,7 @@ export default function BoardPage() {
         if (error) throw error;
       } catch (error) {
         console.error('Error updating connection:', error);
-        toast.error('Failed to save connection');
+        toast.error(friendlyDbError(error, 'Failed to save connection'));
         if (previous) {
           setConnections((prev) => prev.map((conn) => (conn.id === id ? previous : conn)));
         }
@@ -667,7 +668,7 @@ export default function BoardPage() {
         if (error) throw error;
       } catch (error) {
         console.error('Error deleting connection:', error);
-        toast.error('Failed to delete connection');
+        toast.error(friendlyDbError(error, 'Failed to delete connection'));
         if (previous) {
           setConnections((prev) => [...prev, previous]);
         }
@@ -691,7 +692,7 @@ export default function BoardPage() {
         if (error) throw error;
       } catch (error) {
         console.error('Error creating connection:', error);
-        toast.error('Failed to create connection');
+        toast.error(friendlyDbError(error, 'Failed to create connection'));
         setConnections((prev) => prev.filter((c) => c.id !== connection.id));
       }
     },

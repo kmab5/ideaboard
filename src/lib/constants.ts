@@ -64,3 +64,7 @@ export const CONTAINER_COLORS: string[] = [
 ];
 
 export const DEFAULT_CONTAINER_SIZE = { width: 480, height: 360 } as const;
+
+/** Grid spacing (px) used by snap-to-grid; matches the dot Background gap. */
+export const GRID_SIZE = 20;
+export const SNAP_GRID: [number, number] = [GRID_SIZE, GRID_SIZE];
