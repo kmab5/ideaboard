@@ -242,3 +242,32 @@ describe('comparison operators across types', () => {
     ).toBe(false);
   });
 });
+
+describe('list components with a selected value', () => {
+  const lookup3 = makeComponentLookup([
+    {
+      name: 'weather',
+      current_value: ['sunny', 'rainy', 'snowy'],
+      selected_value: 'rainy',
+    },
+    { name: 'unset', current_value: ['a', 'b'], selected_value: null },
+  ]);
+
+  it('compares equality against the selected choice, not the whole list', () => {
+    expect(evaluateRule({ id: '1', component: 'weather', operator: '==', value: 'rainy' }, lookup3)).toBe(true);
+    expect(evaluateRule({ id: '1', component: 'weather', operator: '==', value: 'sunny' }, lookup3)).toBe(false);
+  });
+
+  it('still tests membership against the full set of choices', () => {
+    expect(
+      evaluateRule({ id: '1', component: 'weather', operator: 'includes', value: 'snowy' }, lookup3)
+    ).toBe(true);
+  });
+
+  it('falls back to the choices array when nothing is selected', () => {
+    // Preserves the pre-selection behaviour for existing components.
+    expect(
+      evaluateRule({ id: '1', component: 'unset', operator: 'includes', value: 'a' }, lookup3)
+    ).toBe(true);
+  });
+});

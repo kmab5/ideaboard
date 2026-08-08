@@ -20,6 +20,7 @@ import {
   Wrench,
   Box,
   Magnet,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -30,6 +31,7 @@ interface ToolbarProps {
   zoom: number;
   showGrid: boolean;
   snapToGrid: boolean;
+  showValues: boolean;
   activeTool: 'select' | 'pan';
   canUndo: boolean;
   canRedo: boolean;
@@ -44,6 +46,7 @@ interface ToolbarProps {
   onToolChange: (tool: 'select' | 'pan') => void;
   onToggleGrid: () => void;
   onToggleSnapToGrid: () => void;
+  onToggleShowValues: () => void;
   onManualSave?: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -53,6 +56,7 @@ export function Toolbar({
   zoom,
   showGrid,
   snapToGrid,
+  showValues,
   activeTool,
   canUndo,
   canRedo,
@@ -67,6 +71,7 @@ export function Toolbar({
   onToolChange,
   onToggleGrid,
   onToggleSnapToGrid,
+  onToggleShowValues,
   onManualSave,
   onUndo,
   onRedo,
@@ -287,6 +292,21 @@ export function Toolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">Snap to Grid (Shift+G)</TooltipContent>
+          </Tooltip>
+
+          {/* Show component values inline */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={showValues ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={onToggleShowValues}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Show component values (P)</TooltipContent>
           </Tooltip>
 
           <Separator orientation="horizontal" className="w-6" />

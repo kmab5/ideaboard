@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, SortAsc, SortDesc, FolderOpen, Sparkles, BookOpen } from 'lucide-react';
+import { Search, Filter, SortAsc, SortDesc, FolderOpen, Sparkles, BookOpen, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useStoryStore, useUserStore } from '@/lib/store';
 import type { CreateStoryInput } from '@/lib/validations';
@@ -18,7 +18,13 @@ import {
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import { StoryCard, CreateStoryDialog, PageLoader, ImportStoryDialog } from '@/components/common';
-import { exportStory, downloadStoryExport, importStory } from '@/lib/story-transfer';
+import {
+  exportStory,
+  downloadStoryExport,
+  downloadIbs,
+  downloadAllStories,
+  importStory,
+} from '@/lib/story-transfer';
 import type { StoryExport } from '@/lib/export-import';
 import { toast } from 'sonner';
 
@@ -198,13 +204,18 @@ export default function StoriesPage() {
     [supabase, removeStory]
   );
 
-  // Export a story as a single portable JSON document.
+  // Export one story, either as a compressed .ibs archive (full backup) or as
+  // the readable portable JSON document.
   const handleExportStory = useCallback(
-    async (id: string) => {
+    async (id: string, format: 'json' | 'ibs' = 'ibs') => {
       const toastId = toast.loading('Preparing export...');
       try {
         const doc = await exportStory(supabase, id);
-        downloadStoryExport(doc);
+        if (format === 'ibs') {
+          await downloadIbs(doc);
+        } else {
+          downloadStoryExport(doc);
+        }
         toast.success(`Exported "${doc.story.title}"`, { id: toastId });
       } catch (error) {
         console.error('Error exporting story:', error);
@@ -213,6 +224,23 @@ export default function StoriesPage() {
     },
     [supabase]
   );
+
+  // Bulk export: every story as .ibs inside one ZIP.
+  const handleExportAll = useCallback(async () => {
+    if (!user) return;
+    const toastId = toast.loading('Preparing backup...');
+    try {
+      await downloadAllStories(supabase, user.id, (done, total) => {
+        toast.loading(`Exporting story ${done} of ${total}...`, { id: toastId });
+      });
+      toast.success('Backup downloaded', { id: toastId });
+    } catch (error) {
+      console.error('Error exporting all stories:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to export stories', {
+        id: toastId,
+      });
+    }
+  }, [supabase, user]);
 
   // Import always creates a NEW story, so an export can be restored alongside
   // the original without touching it.
@@ -233,6 +261,40 @@ export default function StoriesPage() {
         toast.error('Failed to import story', { id: toastId });
         throw error;
       }
+    },
+    [supabase, user, router]
+  );
+
+  // Bulk import: create each story in the archive, reporting partial success
+  // rather than failing the whole batch on one bad story.
+  const handleImportMany = useCallback(
+    async (docs: { filename: string; doc: StoryExport }[]) => {
+      if (!user) {
+        toast.error('You must be signed in to import');
+        throw new Error('Not authenticated');
+      }
+
+      const toastId = toast.loading(`Importing ${docs.length} stories...`);
+      let imported = 0;
+      const failed: string[] = [];
+
+      for (const [index, entry] of docs.entries()) {
+        toast.loading(`Importing ${index + 1} of ${docs.length}...`, { id: toastId });
+        try {
+          await importStory(supabase, entry.doc, user.id);
+          imported++;
+        } catch (error) {
+          console.error(`Failed to import ${entry.filename}:`, error);
+          failed.push(entry.doc.story.title || entry.filename);
+        }
+      }
+
+      if (failed.length === 0) {
+        toast.success(`Imported ${imported} stories`, { id: toastId });
+      } else {
+        toast.warning(`Imported ${imported}; failed: ${failed.join(', ')}`, { id: toastId });
+      }
+      router.refresh();
     },
     [supabase, user, router]
   );
@@ -273,8 +335,20 @@ export default function StoriesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleExportAll}
+            disabled={stories.length === 0}
+            title="Download every story as one backup"
+          >
+            <Download className="h-4 w-4" />
+            Back up all
+          </Button>
           <ImportStoryDialog
             onImport={handleImportStory}
+            onImportMany={handleImportMany}
             existingTitles={stories.map((s) => s.title)}
           />
           <CreateStoryDialog onCreateStory={handleCreateStory} />

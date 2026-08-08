@@ -6,28 +6,55 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.14.0`** · Status: MVP complete · v1.1 complete, **including every deferred item**.
+**Current version: `0.15.0`** · Status: MVP complete · v1.1 complete · PRD export suite complete.
 
 ---
 
-## Latest updates — v0.14.0
+## Latest updates — v0.15.0
 
-- **Board & container links.** Write `#Prologue` or `#Prologue/Vault` in a note and it becomes a clickable chip that jumps to that board — switching boards and panning to the container. Names with spaces use `#(Act One/The Vault)`. Links to something that no longer exists show an amber warning instead of dying silently.
-- **Container Panel** — search every container on the board, edit names and descriptions inline, expand one to see the notes inside, click through to any of them, and delete with keep-or-remove contents.
-- **Container collapse/expand** — chevron in the header shrinks a container to a single strip; the notes inside stay put and the original size is restored on expand.
-- **Board overview** — the grid icon in the tab strip opens search across all boards, per-board note counts, and **folders** for grouping. Deleting a folder keeps its boards; they become unfiled.
+- **`.ibs` archive export** — a compressed full backup with an integrity checksum, alongside the existing readable `.json`. Pick a format from a story's Export menu.
+- **Back up all** — one button downloads every story as `.ibs` files inside a single ZIP; importing that ZIP restores all of them.
+- **Selected value for lists** — click a choice on a list component to make it the active one. Conditions then compare against *that* choice, so `weather == "rainy"` finally works; `includes` still checks the full set of options.
+- **Show values** — the eye icon (or `P`) swaps every `{{reference}}` for its current value, so you can proofread a note the way a reader would see it.
+
+> ⚠️ **Action required after deploying:** run `docs/database/migrations/005_list_selected_value.sql` in Supabase.
 
 ## Upcoming / planned
 
 - **v1.2** — sharing & permissions, then real-time collaboration, then version history.
 - **Nonce-based CSP** — built and reverted in v0.13.0; needs a decision on trading static rendering for it (see `SECURITY.md`).
-- **Not implemented from the PRD:** the `.ibs` binary export format and bulk export/import.
-- **Components** — optional *selected value* for list components, and a note "show values" toggle.
-- **Optional** — error monitoring (Sentry).
+- **Not implemented from the PRD:** password-protected exports, and embedding version history in `.ibs` (that feature doesn't exist yet).
+- **Optional** — error monitoring (Sentry) — setup guidance provided.
 
 ---
 
 ## Changelog
+
+### [0.15.0] — 2026-08-08
+
+**`.ibs` archive format (PRD 4.9.2)**
+- DEFLATE-compressed zip following the documented layout, with each entity as its own JSON file and a `manifest.json` carrying a SHA-256 checksum over the payload (the manifest is excluded from its own checksum).
+- Import verifies the checksum and **warns rather than refuses** on a mismatch — a partially-edited archive stays recoverable, which matters more for a backup format than strictness does.
+- 8 tests including a full round trip asserting boards keep their own notes and connections, note content survives verbatim, tampering is detected, and a manifest-less archive is rejected.
+- Deliberately not implemented: asset embedding (images live in Supabase Storage and are referenced by URL — there is nothing local to embed), version-history inclusion (no such feature yet), and password protection.
+
+**Bulk export/import (PRD 4.9.4)**
+- "Back up all" exports every story as `.ibs` inside one ZIP with an index manifest; duplicate story titles get de-duplicated archive entry names.
+- Import auto-detects `.json`, `.ibs`, or a bulk `.zip` — the dialog previews a bulk archive's story list before creating anything.
+- Bulk import reports **partial success** (`Imported 4; failed: X`) instead of aborting the batch on one bad story.
+
+**Selected value for list components**
+- New `components.selected_value` column (migration `005`). Choices stay in `current_value`, so existing data needs no reshaping.
+- Condition semantics refined: equality and ordering test the **selection**, `includes` tests the **choices**. Previously a list's `==` compared against the stringified array and effectively never matched. A list with nothing selected falls back to the old behaviour, so existing conditions keep working.
+- Click a choice chip on the component card to select it, click again to clear.
+
+**Show values**
+- Toolbar toggle and `P` shortcut render `{{component}}` references as their current value, resolving a list to its selected choice. The chip's tooltip keeps the component name so context isn't lost.
+
+**Files changed**
+- Added: `src/lib/ibs.ts`, `src/lib/ibs.test.ts`, `docs/database/migrations/005_list_selected_value.sql`
+- Modified: `src/lib/story-transfer.ts`, `src/lib/conditions.ts`, `src/lib/conditions.test.ts`, `src/lib/validations/component.ts`, `src/components/common/markdown-renderer.tsx`, `src/components/common/story-card.tsx`, `src/components/common/import-story-dialog.tsx`, `src/components/panels/component-panel.tsx`, `src/components/board/note-node.tsx`, `src/components/board/canvas.tsx`, `src/components/board/toolbar.tsx`, `src/app/(dashboard)/stories/page.tsx`, `src/app/guide/page.tsx`, `src/types/database.ts`, `docs/database/schema.sql`, `docs/MVP.md`, `src/lib/version.ts`, `package.json`
+- Dependency added: `jszip` (required for the archive formats; audit remains clean)
 
 ### [0.14.0] — 2026-08-08
 

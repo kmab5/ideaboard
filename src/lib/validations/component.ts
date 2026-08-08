@@ -50,6 +50,7 @@ export const updateComponentSchema = z.object({
   description: z.string().max(500).nullable().optional(),
   default_value: componentValueSchema.optional(),
   current_value: componentValueSchema.optional(),
+  selected_value: componentValueSchema.nullable().optional(),
   color_tag: z
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format')

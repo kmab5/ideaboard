@@ -120,6 +120,10 @@ function CanvasInner({
   onLinkClick,
   focusContainerId,
 }: CanvasProps) {
+  // Preview mode: render {{component}} references as their current value.
+  // Declared early because notesToNodes below injects it into node data.
+  const [showValues, setShowValues] = useState(false);
+
   // Track if initial load is complete
   const isInitializedRef = useRef(false);
   const reactFlowInstance = useReactFlow();
@@ -365,6 +369,7 @@ function CanvasInner({
             linkBoards,
             linkContainers,
             onLinkClick,
+            showValues,
             ...(isConditional
               ? {
                   onSaveBranches: handleSaveBranches,
@@ -397,6 +402,7 @@ function CanvasInner({
       linkBoards,
       linkContainers,
       onLinkClick,
+      showValues,
     ]
   );
 
@@ -821,6 +827,7 @@ function CanvasInner({
             linkBoards,
             linkContainers,
             onLinkClick,
+            showValues,
             ...(isConditional
               ? {
                   onSaveBranches: handleSaveBranches,
@@ -863,6 +870,7 @@ function CanvasInner({
     linkBoards,
     linkContainers,
     onLinkClick,
+    showValues,
     setNodes,
   ]);
 
@@ -1453,6 +1461,9 @@ function CanvasInner({
         case 'c':
           handleAddContainer();
           break;
+        case 'p':
+          setShowValues((v) => !v);
+          break;
         case 'g':
           if (e.shiftKey) {
             setSnapToGrid((v) => !v);
@@ -1564,6 +1575,8 @@ function CanvasInner({
             onAddContainer={handleAddContainer}
             snapToGrid={snapToGrid}
             onToggleSnapToGrid={() => setSnapToGrid((v) => !v)}
+            showValues={showValues}
+            onToggleShowValues={() => setShowValues((v) => !v)}
             onToolChange={setActiveTool}
             onToggleGrid={() => setShowGrid(!showGrid)}
             onManualSave={handleManualSave}

@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** January 14, 2026 (updated August 4, 2026)
-**Status:** ✅ **MVP COMPLETE** · ✅ **v1.1 COMPLETE (incl. all deferred items)** — app version `0.14.0`, deployed, security-audited. See `LOG.md` and `SECURITY.md`.
+**Status:** ✅ **MVP COMPLETE** · ✅ **v1.1 COMPLETE (incl. all deferred items)** — app version `0.15.0`, deployed, security-audited. See `LOG.md` and `SECURITY.md`.
 
 ---
 
@@ -76,7 +76,14 @@ Everything previously carried as "deferred from v1.1" is now implemented:
 - **Container collapse/expand** (PRD 4.7.1) — chevron in the header; collapsing renders the container at header height while leaving the stored height untouched, so expanding restores the original size.
 - **Board folders, board search, and board overview** (PRD 4.5) — one panel behind the grid icon in the tab strip: search by name/description, per-board note counts (fetched lazily so the board never waits on them), folder create/rename/delete, and move-board-to-folder. Deleting a folder keeps its boards, which become unfiled (`boards.folder_id` is `ON DELETE SET NULL`).
 
-Still not implemented, and now the only outstanding export-related items: the `.ibs` binary format and bulk export/import (PRD 4.9.2, 4.9.4).
+**Update (v0.15.0): `.ibs` and bulk export/import are now implemented too — every PRD export feature except optional password protection and version-history embedding is done.**
+
+### v0.15.0 — .ibs, bulk transfer, list selection, value preview
+
+- **`.ibs` archive (PRD 4.9.2)** — DEFLATE-compressed zip with the documented layout (`manifest.json`, `story.json`, `components.json`, `boards/`, `containers/`, `notes/`, `connections/`) and a SHA-256 checksum over the payload. Import verifies it and warns on mismatch rather than refusing, so a slightly-edited archive is still recoverable. **Not implemented:** asset embedding (images live in Supabase Storage and are referenced by URL, so there's nothing local to embed), version-history inclusion (the feature doesn't exist), and password protection.
+- **Bulk export/import (PRD 4.9.4)** — "Back up all" downloads every story as `.ibs` inside one ZIP with an index manifest; import accepts that ZIP and restores each story, reporting partial success rather than failing the batch on one bad entry.
+- **Selected value for lists** — new `components.selected_value` column (migration `005`). Choices stay in `current_value`, so existing data is untouched. Equality and ordering now test the selection (`weather == "rainy"`), while `includes` still tests the choices. A list with nothing selected falls back to the old behaviour.
+- **Show values** — toolbar toggle (`P`) renders `{{component}}` references as their current value, resolving a list to its selected choice.
 
 ---
 

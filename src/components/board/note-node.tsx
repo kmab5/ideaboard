@@ -42,6 +42,7 @@ interface NoteNodeData {
   linkBoards?: LinkableBoard[];
   linkContainers?: LinkableContainer[];
   onLinkClick?: (link: ResolvedLink) => void;
+  showValues?: boolean;
 }
 
 // Available note colors are centralized in @/lib/constants (NOTE_COLORS).
@@ -616,6 +617,7 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
                   boards={data.linkBoards}
                   containers={data.linkContainers}
                   onLinkClick={data.onLinkClick}
+                  showValues={data.showValues}
                 />
               ) : (
                 <span className="italic text-gray-500">Double-tap to edit...</span>

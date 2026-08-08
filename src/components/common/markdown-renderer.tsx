@@ -28,6 +28,8 @@ interface MarkdownRendererProps {
   components?: ReferenceComponent[];
   /** Called when a valid reference chip is clicked. */
   onReferenceClick?: (name: string) => void;
+  /** Render references as their current value instead of the component name. */
+  showValues?: boolean;
   /** Boards in the story, for resolving `#board` links. */
   boards?: LinkableBoard[];
   /** Containers in the story, for resolving `#board/container` links. */
@@ -44,6 +46,17 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
+/**
+ * What a reference shows in "show values" mode. A list resolves to its
+ * selected choice when it has one, since that's the value a reader would
+ * actually encounter; otherwise it falls back to the raw value.
+ */
+function displayValue(component: ReferenceComponent): string {
+  const selected = (component as { selected_value?: unknown }).selected_value;
+  if (selected !== undefined && selected !== null) return formatValue(selected);
+  return formatValue(component.current_value);
+}
+
 function referenceTitle(component: ReferenceComponent): string {
   const parts = [`${component.type ?? 'component'} = ${formatValue(component.current_value)}`];
   if (component.description) parts.push(component.description);
@@ -55,10 +68,12 @@ function TextWithComponents({
   children,
   resolve,
   onReferenceClick,
+  showValues,
 }: {
   children: React.ReactNode;
   resolve: ResolveReference;
   onReferenceClick?: (name: string) => void;
+  showValues?: boolean;
 }) {
   if (typeof children !== 'string') {
     return <>{children}</>;
@@ -123,9 +138,9 @@ function TextWithComponents({
               'inline-flex items-center rounded bg-blue-500/20 px-1.5 py-0.5 font-mono text-xs font-semibold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300',
               clickable && 'cursor-pointer hover:bg-blue-500/30'
             )}
-            title={referenceTitle(component)}
+            title={showValues ? `${name} (${referenceTitle(component)})` : referenceTitle(component)}
           >
-            {name}
+            {showValues ? displayValue(component) : name}
           </span>
         );
       })}
@@ -141,6 +156,7 @@ export function MarkdownRenderer({
   boards,
   containers,
   onLinkClick,
+  showValues,
 }: MarkdownRendererProps) {
   // Case-insensitive lookup, mirroring the component store's name matching.
   const resolve = useMemo<ResolveReference>(() => {
@@ -154,7 +170,11 @@ export function MarkdownRenderer({
     const segments = splitTextByLinks(value);
     if (segments.length === 1 && segments[0].type === 'text') {
       return (
-        <TextWithComponents resolve={resolve} onReferenceClick={onReferenceClick}>
+        <TextWithComponents
+          resolve={resolve}
+          onReferenceClick={onReferenceClick}
+          showValues={showValues}
+        >
           {value}
         </TextWithComponents>
       );
@@ -167,6 +187,7 @@ export function MarkdownRenderer({
             key={`${keyPrefix}-t${index}`}
             resolve={resolve}
             onReferenceClick={onReferenceClick}
+            showValues={showValues}
           >
             {segment.value}
           </TextWithComponents>

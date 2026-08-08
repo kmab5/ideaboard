@@ -20,6 +20,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -40,7 +43,7 @@ interface StoryCardProps {
   onToggleArchive: (id: string) => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
-  onExport: (id: string) => void;
+  onExport: (id: string, format: 'json' | 'ibs') => void;
 }
 
 export function StoryCard({
@@ -142,15 +145,30 @@ export function StoryCard({
                   <Archive className="mr-2 h-4 w-4" />
                   {story.is_archived ? 'Unarchive' : 'Archive'}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onExport(story.id);
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onExport(story.id, 'ibs');
+                      }}
+                    >
+                      Archive (.ibs) — full backup
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onExport(story.id, 'json');
+                      }}
+                    >
+                      Readable (.json) — portable
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"

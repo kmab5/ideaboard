@@ -98,6 +98,8 @@ export interface Component {
   description: string | null;
   default_value: unknown;
   current_value: unknown;
+  /** For list components: the active choice out of `current_value`. */
+  selected_value: unknown;
   color_tag: string | null;
   sort_order: number;
   created_at: string;

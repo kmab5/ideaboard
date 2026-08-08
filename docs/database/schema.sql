@@ -144,6 +144,8 @@ CREATE TABLE components (
     -- Values stored as JSONB for flexibility
     default_value JSONB NOT NULL DEFAULT 'null',
     current_value JSONB NOT NULL DEFAULT 'null',
+    -- For list components: the active choice out of current_value
+    selected_value JSONB,
     
     -- Visual customization
     color_tag VARCHAR(7), -- Hex color like #FF5733

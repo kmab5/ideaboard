@@ -399,14 +399,29 @@ export function ComponentPanel({
                     {Array.isArray(component.current_value) &&
                     component.current_value.length > 0 ? (
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {(component.current_value as (string | number | boolean)[]).map((choice, i) => (
-                          <span
-                            key={i}
-                            className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.7rem]"
-                          >
-                            {String(choice)}
-                          </span>
-                        ))}
+                        {(component.current_value as (string | number | boolean)[]).map((choice, i) => {
+                          const isSelected = String(component.selected_value) === String(choice);
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() =>
+                                handleUpdate(component.id, {
+                                  selected_value: isSelected ? null : choice,
+                                })
+                              }
+                              title={isSelected ? 'Clear selection' : 'Set as selected value'}
+                              className={cn(
+                                'rounded px-1.5 py-0.5 font-mono text-[0.7rem] transition-colors',
+                                isSelected
+                                  ? 'bg-violet-500 font-semibold text-white'
+                                  : 'bg-muted hover:bg-muted-foreground/20'
+                              )}
+                            >
+                              {String(choice)}
+                            </button>
+                          );
+                        })}
                       </div>
                     ) : (
                       <span className="ml-1 text-muted-foreground">none yet</span>

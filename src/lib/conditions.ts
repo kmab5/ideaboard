@@ -35,19 +35,38 @@ export interface ConditionalNoteData {
   branches: ConditionalBranch[];
 }
 
-/** Minimal component shape evaluation needs (name -> current value). */
+/** Minimal component shape evaluation needs. */
 export interface ComponentValueLookup {
+  /** The value equality/comparison operators test against. */
   getValue(name: string): unknown;
+  /** The value `includes` tests against — a list's choices, if it has any. */
+  getMembershipValue(name: string): unknown;
   /** Whether a component with this name currently exists (for validity checks). */
   has(name: string): boolean;
 }
 
+/**
+ * Build a lookup over the story's components.
+ *
+ * A `list` component holds its *choices* in `current_value` and its active
+ * choice in `selected_value`. Equality and ordering therefore test the
+ * selection (`weather == "rainy"`), while `includes` tests the choices
+ * (`weather includes "snowy"`). Lists with nothing selected fall back to the
+ * choices array, preserving the pre-selection behaviour.
+ */
 export function makeComponentLookup(
-  components: { name: string; current_value: unknown }[]
+  components: { name: string; current_value: unknown; selected_value?: unknown }[]
 ): ComponentValueLookup {
-  const map = new Map(components.map((c) => [c.name.toLowerCase(), c.current_value]));
+  const map = new Map(components.map((c) => [c.name.toLowerCase(), c]));
   return {
-    getValue: (name: string) => map.get(name.toLowerCase()),
+    getValue: (name: string) => {
+      const component = map.get(name.toLowerCase());
+      if (!component) return undefined;
+      const hasSelection =
+        component.selected_value !== undefined && component.selected_value !== null;
+      return hasSelection ? component.selected_value : component.current_value;
+    },
+    getMembershipValue: (name: string) => map.get(name.toLowerCase())?.current_value,
     has: (name: string) => map.has(name.toLowerCase()),
   };
 }
@@ -159,7 +178,13 @@ function compare(actual: unknown, operator: ConditionOperator, expected: Conditi
 /** Evaluate a single rule against the current component values. */
 export function evaluateRule(rule: ConditionRule, lookup: ComponentValueLookup): boolean {
   if (!lookup.has(rule.component)) return false;
-  return compare(lookup.getValue(rule.component), rule.operator, rule.value);
+  // `includes` asks "is X among the options", so it always reads the choices,
+  // even when a selection exists.
+  const actual =
+    rule.operator === 'includes'
+      ? lookup.getMembershipValue(rule.component)
+      : lookup.getValue(rule.component);
+  return compare(actual, rule.operator, rule.value);
 }
 
 /** A branch matches when it's the else branch, or all of its rules pass. */

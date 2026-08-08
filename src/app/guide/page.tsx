@@ -284,9 +284,17 @@ const sections = [
           </li>
           <li>
             <strong>List</strong> — a set of choices, e.g. weather is one of{' '}
-            <span className="font-mono">sunny, rainy, snowy</span>.
+            <span className="font-mono">sunny, rainy, snowy</span>. Click a choice on the component
+            card to mark it as the <strong>selected value</strong> (click again to clear it).
           </li>
         </ul>
+        <p>
+          Once a list has a selected value, conditions compare against{' '}
+          <em>that</em> choice — so <span className="font-mono">weather == &quot;rainy&quot;</span>{' '}
+          works the way you&apos;d expect, while{' '}
+          <span className="font-mono">weather includes &quot;snowy&quot;</span> still asks whether
+          it&apos;s one of the available options.
+        </p>
         <p>
           For a <strong>list</strong>, open the component and use the choices editor to add, rename,
           reorder, or remove options. Each component also shows its current value, a{' '}
@@ -317,6 +325,12 @@ const sections = [
             deleted, the reference is flagged so you can fix it.
           </li>
           <li>The components panel shows exactly which notes use each component.</li>
+          <li>
+            <strong>Show values</strong> (eye icon in the toolbar, or{' '}
+            <span className="font-mono">P</span>) swaps every reference for its current value, so
+            you can proofread a note as a reader would see it. For a list, that&apos;s its selected
+            choice.
+          </li>
         </ul>
       </>
     ),
@@ -410,13 +424,22 @@ const sections = [
         <ul>
           <li>
             <strong>Export:</strong> open a story&apos;s menu on the dashboard and choose{' '}
-            <strong>Export</strong>. You&apos;ll get a{' '}
-            <span className="font-mono">.ideaboard.json</span> file containing the story, all its
+            <strong>Export</strong>, then pick a format. <strong>Archive (.ibs)</strong> is a
+            compressed full backup with an integrity checksum;{' '}
+            <strong>Readable (.json)</strong> is a plain, diffable file. Both contain everything:
             boards, notes, connections, containers, and components.
           </li>
           <li>
-            <strong>Import:</strong> use the <strong>Import</strong> button on the dashboard. Pick a
-            file and you&apos;ll see a summary of what it contains before anything is created.
+            <strong>Back up everything:</strong> the <strong>Back up all</strong> button downloads
+            every story as one ZIP of <span className="font-mono">.ibs</span> archives, with an
+            index of what&apos;s inside.
+          </li>
+          <li>
+            <strong>Import:</strong> use the <strong>Import</strong> button on the dashboard. It
+            accepts any of the three formats — <span className="font-mono">.ibs</span>,{' '}
+            <span className="font-mono">.json</span>, or a bulk{' '}
+            <span className="font-mono">.zip</span> — and shows you what the file contains before
+            anything is created. Importing a bulk backup restores every story in it.
           </li>
           <li>
             <strong>Importing always creates a new story</strong> with fresh IDs — nothing you
