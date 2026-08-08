@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** January 14, 2026 (updated August 4, 2026)
-**Status:** ✅ **MVP COMPLETE** — app version `0.9.0`, deployed, security-audited. v1.1 underway. See `LOG.md` and `SECURITY.md`.
+**Status:** ✅ **MVP COMPLETE** — app version `0.10.0`, deployed, security-audited. v1.1 underway. See `LOG.md` and `SECURITY.md`.
 
 ---
 
@@ -15,7 +15,7 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 | Conditional Notes | ✅ Shipped (v0.7.0) |
 | Technical Notes | ✅ Shipped (v0.8.0) |
 | Multi-board per story | ✅ Shipped (v0.9.0) |
-| Containers | Not started |
+| Containers | ✅ Shipped (v0.10.0) |
 | Export/Import | Not started |
 
 ### Conditional Notes — implementation notes
@@ -43,6 +43,17 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 - A story always keeps at least one board — deleting the last one is blocked in both the UI and the handler.
 - Components remain story-level and are therefore shared across every board, as the PRD specifies.
 - Deliberately out of scope for this pass (all separate PRD features): board linking via `#boardname`, cross-board navigation, board folders, board search, and the board-overview dashboard with thumbnails.
+
+### Containers — implementation notes
+
+- Containers are canvas regions rendered as React Flow nodes *behind* notes (`zIndex: 0`), with a click-through body so notes stacked on top stay directly interactive. Only the header strip is draggable (`dragHandle`).
+- **Membership is geometric and auto-tracked** (PRD 4.7.2 "Contents List"): a note belongs to the container whose bounds hold the note's *centre*. Dragging a note in or out changes membership with no explicit add/remove step. `notes.container_id` persists the result, but geometry is the source of truth.
+- Overlapping containers resolve to the **smallest** match, which is the intuitive reading of nesting; ties break by z-index then id so the result is deterministic. All of this lives in `src/lib/containers.ts` and is unit-tested (15 tests).
+- Dragging a container moves its contents: the delta is applied to every note that was inside at drag *start*, so notes aren't picked up mid-move.
+- Deleting offers keep-contents or delete-with-contents. `notes.container_id` is `ON DELETE SET NULL`, so surviving notes detach automatically.
+- Creating with notes selected fits the container around them; otherwise it lands at the viewport centre. Names are auto-numbered to avoid colliding with the database's per-board uniqueness constraint.
+- No migration needed — the `containers` table and `notes.container_id` already existed in the schema.
+- Deliberately out of scope for this pass: the floating **Container Panel** (PRD 4.7.3), container references (`#board/container`), collapse/expand, and the mini-board (`mini_board_data`) feature. Containers are also board-scoped here; the schema's story-level containers (`board_id IS NULL`) are unused.
 
 ---
 
@@ -76,7 +87,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | --------- | ---------------- |
 | Conditional Notes | ✅ Shipped in v0.7.0 (see LOG.md) |
 | Technical Notes | ✅ Shipped in v0.8.0 (see LOG.md) |
-| Containers | v1.1 |
+| Containers | ✅ Shipped in v0.10.0 (see LOG.md) |
 | Multi-board per story | ✅ Shipped in v0.9.0 (see LOG.md) |
 | Export/Import (.ibs full) | v1.1 |
 | Export/Import (.zip light) | v1.1 |

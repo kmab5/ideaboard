@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useStoryStore, useComponentStore } from '@/lib/store';
 import { extractReferenceNames } from '@/lib/references';
 import { cloneBoardContents, resolveActiveBoard } from '@/lib/boards';
-import type { Board, Note, Connection } from '@/types/database';
+import type { Board, Note, Connection, Container } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Canvas, BoardTabs } from '@/components/board';
 import { ComponentPanel } from '@/components/panels';
@@ -35,6 +35,7 @@ export default function BoardPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [containers, setContainers] = useState<Container[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSwitchingBoard, setIsSwitchingBoard] = useState(false);
   // Note the panel asks the canvas to focus (pan/select). Null clears it.
@@ -134,16 +135,19 @@ export default function BoardPage() {
           setBoard(currentBoard);
 
           // Notes and connections both derive from the board id — fetch together.
-          const [notesResult, connectionsResult] = await Promise.all([
+          const [notesResult, connectionsResult, containersResult] = await Promise.all([
             supabase.from('notes').select('*').eq('board_id', currentBoard.id),
             supabase.from('connections').select('*').eq('board_id', currentBoard.id),
+            supabase.from('containers').select('*').eq('board_id', currentBoard.id),
           ]);
 
           if (notesResult.error) throw notesResult.error;
           if (connectionsResult.error) throw connectionsResult.error;
+          if (containersResult.error) throw containersResult.error;
 
           setNotes(notesResult.data || []);
           setConnections(connectionsResult.data || []);
+          setContainers(containersResult.data || []);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -177,16 +181,19 @@ export default function BoardPage() {
 
       setIsSwitchingBoard(true);
       try {
-        const [notesResult, connectionsResult] = await Promise.all([
+        const [notesResult, connectionsResult, containersResult] = await Promise.all([
           supabase.from('notes').select('*').eq('board_id', boardId),
           supabase.from('connections').select('*').eq('board_id', boardId),
+          supabase.from('containers').select('*').eq('board_id', boardId),
         ]);
         if (notesResult.error) throw notesResult.error;
         if (connectionsResult.error) throw connectionsResult.error;
+        if (containersResult.error) throw containersResult.error;
 
         setBoard(target);
         setNotes(notesResult.data || []);
         setConnections(connectionsResult.data || []);
+        setContainers(containersResult.data || []);
         // Keep the URL in sync so the open board is linkable and survives reload.
         router.replace(`/board/${storyId}?b=${boardId}`, { scroll: false });
       } catch (error) {
@@ -217,6 +224,7 @@ export default function BoardPage() {
         setBoard(data);
         setNotes([]);
         setConnections([]);
+        setContainers([]);
         router.replace(`/board/${storyId}?b=${data.id}`, { scroll: false });
         toast.success(`Created "${title}"`);
       } catch (error) {
@@ -327,6 +335,100 @@ export default function BoardPage() {
       }
     },
     [boards, storyId, supabase]
+  );
+
+  // ---------------------------------------------------------------------
+  // Containers
+  // ---------------------------------------------------------------------
+
+  const handleCreateContainer = useCallback(
+    async (container: Partial<Container>) => {
+      const newContainer = {
+        ...container,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as Container;
+
+      setContainers((prev) => [...prev, newContainer]);
+
+      try {
+        const { error } = await supabase.from('containers').insert(newContainer);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error creating container:', error);
+        toast.error('Failed to create container');
+        setContainers((prev) => prev.filter((c) => c.id !== container.id));
+      }
+    },
+    [supabase]
+  );
+
+  const handleUpdateContainer = useCallback(
+    async (id: string, updates: Partial<Container>) => {
+      const previous = containers.find((c) => c.id === id);
+
+      setContainers((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, ...updates, updated_at: new Date().toISOString() } : c))
+      );
+
+      try {
+        const { error } = await supabase
+          .from('containers')
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error updating container:', error);
+        toast.error('Failed to save container');
+        if (previous) {
+          setContainers((prev) => prev.map((c) => (c.id === id ? previous : c)));
+        }
+      }
+    },
+    [containers, supabase]
+  );
+
+  const handleDeleteContainer = useCallback(
+    async (id: string, keepContents: boolean) => {
+      const previousContainers = containers;
+      const contained = notes.filter((n) => n.container_id === id);
+
+      setContainers((prev) => prev.filter((c) => c.id !== id));
+      if (!keepContents) {
+        setNotes((prev) => prev.filter((n) => n.container_id !== id));
+      }
+
+      try {
+        if (!keepContents && contained.length > 0) {
+          const { error: notesError } = await supabase
+            .from('notes')
+            .delete()
+            .in(
+              'id',
+              contained.map((n) => n.id)
+            );
+          if (notesError) throw notesError;
+        }
+
+        // notes.container_id is ON DELETE SET NULL, so surviving notes are
+        // detached automatically when the container row goes away.
+        const { error } = await supabase.from('containers').delete().eq('id', id);
+        if (error) throw error;
+
+        if (keepContents) {
+          setNotes((prev) =>
+            prev.map((n) => (n.container_id === id ? { ...n, container_id: null } : n))
+          );
+        }
+        toast.success(keepContents ? 'Container removed' : 'Container and notes deleted');
+      } catch (error) {
+        console.error('Error deleting container:', error);
+        toast.error('Failed to delete container');
+        setContainers(previousContainers);
+        if (!keepContents) setNotes((prev) => [...prev, ...contained]);
+      }
+    },
+    [containers, notes, supabase]
   );
 
   // Best-effort sync of the component_references table when a note's content
@@ -623,12 +725,16 @@ export default function BoardPage() {
           board={board}
           notes={notes}
           connections={connections}
+          containers={containers}
           onUpdateNote={handleUpdateNote}
           onDeleteNote={handleDeleteNote}
           onCreateNote={handleCreateNote}
           onUpdateConnection={handleUpdateConnection}
           onDeleteConnection={handleDeleteConnection}
           onCreateConnection={handleCreateConnection}
+          onUpdateContainer={handleUpdateContainer}
+          onCreateContainer={handleCreateContainer}
+          onDeleteContainer={handleDeleteContainer}
           onUpdateViewport={handleUpdateViewport}
           focusNoteId={focusNoteId}
         />

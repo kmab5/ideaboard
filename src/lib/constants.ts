@@ -30,8 +30,7 @@ export const NOTE_COLOR_BG: Record<string, string> = Object.fromEntries(
   NOTE_COLORS.map((c) => [c.value, c.bg])
 );
 
-/** Palette used when assigning a color to a new connection. */
-export const CONNECTION_COLORS: string[] = [
+/** Palette used when assigning a color to a new connection. */export const CONNECTION_COLORS: string[] = [
   '#6b7280',
   '#ef4444',
   '#f97316',
@@ -53,3 +52,15 @@ export const DOUBLE_TAP_DELAY_MS = 350;
 export function randomFrom<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
+
+/** Palette for container borders/tints (PRD 4.7.2 "Color"). */
+export const CONTAINER_COLORS: string[] = [
+  '#7c3aed', // violet
+  '#0891b2', // cyan
+  '#22c55e', // green
+  '#f59e0b', // amber
+  '#ec4899', // pink
+  '#6b7280', // gray
+];
+
+export const DEFAULT_CONTAINER_SIZE = { width: 480, height: 360 } as const;

@@ -5,4 +5,5 @@ export { TechnicalNoteNode } from './technical-note-node';
 export { ConnectionEdge } from './connection-edge';
 export { Toolbar } from './toolbar';
 export { Canvas } from './canvas';
+export { ContainerNode } from './container-node';
 export { BoardTabs } from './board-tabs';

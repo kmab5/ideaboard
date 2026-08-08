@@ -18,6 +18,7 @@ import {
   Redo2,
   GitBranch,
   Wrench,
+  Box,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -37,6 +38,7 @@ interface ToolbarProps {
   onAddDrawing: () => void;
   onAddConditional: () => void;
   onAddTechnical: () => void;
+  onAddContainer: () => void;
   onToolChange: (tool: 'select' | 'pan') => void;
   onToggleGrid: () => void;
   onManualSave?: () => void;
@@ -57,6 +59,7 @@ export function Toolbar({
   onAddDrawing,
   onAddConditional,
   onAddTechnical,
+  onAddContainer,
   onToolChange,
   onToggleGrid,
   onManualSave,
@@ -205,6 +208,16 @@ export function Toolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">Add Technical Note (Alt+N)</TooltipContent>
+          </Tooltip>
+
+          {/* Add Container */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAddContainer}>
+                <Box className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Add Container (C) — wraps selected notes</TooltipContent>
           </Tooltip>
 
           <Separator orientation="horizontal" className="w-6" />

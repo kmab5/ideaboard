@@ -6,30 +6,49 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.9.0`** · Status: **MVP complete; v1.1 underway.** Conditional Notes, Technical Notes, and Multi-Board shipped.
+**Current version: `0.10.0`** · Status: **MVP complete; v1.1 nearly done.** Only Export/Import remains.
 
 ---
 
-## Latest updates — v0.9.0
+## Latest updates — v0.10.0
 
-- **Multi-board per story shipped.** A story can now hold as many boards as you need, switchable from a tab strip under the header — split a project into "Act 1", "Side Quests", "Characters", and so on.
-- Create, rename (double-click a tab), **duplicate** (copies every note and connection), and delete boards. A story always keeps at least one board.
-- The open board lives in the URL (`?b=<boardId>`), so boards are linkable and survive a refresh.
-- Components stay story-level, so they're shared across every board — define `gold` once, use it anywhere.
+- **Containers shipped.** Name a region of the canvas to group the notes inside it — an act, a chapter, a cluster of related scenes. Add one from the toolbar or with `C`.
+- **Membership is automatic:** a note belongs to whichever container its centre sits in. Drag notes in or out and the grouping updates itself, with a live note count in the header.
+- Dragging a container's header moves everything inside it. Create with notes selected and the container is drawn around them.
+- Deleting asks what you want: keep the notes on the canvas, or delete them along with the container.
 
 ## Upcoming / planned
 
-- **Containers** (next in the v1.1 order), then **Export/Import**.
-- **Board linking** (`#boardname`) and cross-board navigation — PRD P0 features that build on multi-board; deferred to their own pass along with board folders, search, and the board-overview dashboard.
+- **Export/Import** — the last v1.1 feature.
+- **Container Panel** (PRD 4.7.3), container references (`#board/container`), and collapse/expand — deferred from this pass.
+- **Board linking** (`#boardname`) and cross-board navigation, plus board folders/search/overview.
 - **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src`.
-- **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes — tracked as future work.
-- **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle previewing `{{fuel}}` as its current value.
+- **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes.
+- **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle.
 - **Optional** — error monitoring (Sentry), snap-to-grid, one-click undo for a technical note's "Apply".
 - **v1.2** — real-time collaboration and sharing, then version history.
 
 ---
 
 ## Changelog
+
+### [0.10.0] — 2026-08-08
+
+**Containers (fourth v1.1 feature)**
+- Containers are named canvas regions that group the notes inside them. Created from the toolbar or with `C`; if notes are selected, the container is fitted around them, otherwise it lands at the viewport centre.
+- **Geometric, auto-tracked membership** (PRD 4.7.2): a note belongs to the container holding its centre — no explicit add/remove step. Overlapping containers resolve to the smallest match (intuitive nesting), with deterministic tie-breaking by z-index then id. Extracted to `src/lib/containers.ts` with 15 unit tests.
+- Dragging a container's header moves every note that was inside it at drag start. The body is click-through and containers paint behind notes, so notes on top stay directly interactive.
+- Resize, rename (double-click), recolour, and lock. Deleting offers keep-contents or delete-with-contents; surviving notes detach automatically via `ON DELETE SET NULL`.
+- Fixed a latent hazard while wiring this up: the existing "remove deleted notes" effect filtered nodes against the notes list, which would have silently deleted every container node — container nodes are now preserved and synced by their own effect.
+- No migration needed — the `containers` table and `notes.container_id` were already in the schema.
+
+**Docs**
+- Guide updated with a new "Containers" section.
+- `MVP.md`: v1.1 progress table and containers implementation notes, including what was deliberately deferred (Container Panel, container references, collapse/expand, mini-boards).
+
+**Files changed**
+- Added: `src/lib/containers.ts`, `src/lib/containers.test.ts`, `src/components/board/container-node.tsx`
+- Modified: `src/components/board/canvas.tsx`, `src/components/board/toolbar.tsx`, `src/components/board/index.ts`, `src/app/(board)/board/[id]/page.tsx`, `src/lib/constants.ts`, `src/app/guide/page.tsx`, `docs/MVP.md`, `src/lib/version.ts`, `package.json`
 
 ### [0.9.0] — 2026-08-06
 

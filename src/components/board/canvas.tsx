@@ -19,11 +19,12 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
-import type { Note, Connection, Board } from '@/types/database';
+import type { Note, Connection, Board, Container } from '@/types/database';
 import { NoteNode } from './note-node';
 import { DrawingNode } from './drawing-node';
 import { ConditionalNoteNode } from './conditional-note-node';
 import { TechnicalNoteNode } from './technical-note-node';
+import { ContainerNode } from './container-node';
 import { ConnectionEdge } from './connection-edge';
 import { Toolbar } from './toolbar';
 import { toast } from 'sonner';
@@ -33,8 +34,10 @@ import { validateImageFile, safeExtensionForType, NOTE_IMAGE_MAX_BYTES } from '@
 import {
   NOTE_COLOR_VALUES,
   CONNECTION_COLORS,
+  CONTAINER_COLORS,
   DEFAULT_NOTE_SIZE,
   DEFAULT_DRAWING_SIZE,
+  DEFAULT_CONTAINER_SIZE,
   randomFrom,
 } from '@/lib/constants';
 import {
@@ -44,6 +47,7 @@ import {
   type ConditionalBranch,
 } from '@/lib/conditions';
 import { parseTechnicalData, applyUpdate, type TechnicalUpdate } from '@/lib/technical';
+import { notesInContainer, membershipChanges, boundsAroundNotes } from '@/lib/containers';
 
 // Custom node types - memoized to prevent recreation warnings
 const defaultNodeTypes = {
@@ -51,6 +55,7 @@ const defaultNodeTypes = {
   drawingNode: DrawingNode,
   conditionalNode: ConditionalNoteNode,
   technicalNode: TechnicalNoteNode,
+  containerNode: ContainerNode,
 };
 
 // Custom edge types - memoized to prevent recreation warnings
@@ -70,12 +75,16 @@ interface CanvasProps {
   board: Board;
   notes: Note[];
   connections: Connection[];
+  containers: Container[];
   onUpdateNote: (id: string, updates: Partial<Note>) => void;
   onDeleteNote: (id: string) => void;
   onCreateNote: (note: Partial<Note>) => void;
   onUpdateConnection: (id: string, updates: Partial<Connection>) => void;
   onDeleteConnection: (id: string) => void;
   onCreateConnection: (connection: Partial<Connection>) => void;
+  onUpdateContainer: (id: string, updates: Partial<Container>) => void;
+  onCreateContainer: (container: Partial<Container>) => void;
+  onDeleteContainer: (id: string, keepContents: boolean) => void;
   onUpdateViewport: (x: number, y: number, zoom: number) => void;
   /** When set, pan to and select this note (e.g. from the component panel). */
   focusNoteId?: string | null;
@@ -86,12 +95,16 @@ function CanvasInner({
   board,
   notes,
   connections,
+  containers,
   onUpdateNote,
   onDeleteNote,
   onCreateNote,
   onUpdateConnection,
   onDeleteConnection,
   onCreateConnection,
+  onUpdateContainer,
+  onCreateContainer,
+  onDeleteContainer,
   onUpdateViewport,
   focusNoteId,
 }: CanvasProps) {
@@ -352,6 +365,55 @@ function CanvasInner({
     ]
   );
 
+  // Convert containers to React Flow nodes. These are rendered *behind* notes
+  // (React Flow paints in array order) and are only draggable by their header
+  // strip, so notes sitting on top stay directly interactive.
+  const containersToNodes = useCallback(
+    (containerList: Container[]): Node[] =>
+      containerList.map((container) => ({
+        id: container.id,
+        type: 'containerNode',
+        position: { x: container.position_x, y: container.position_y },
+        data: {
+          container,
+          noteCount: notesInContainer(
+            {
+              id: container.id,
+              x: container.position_x,
+              y: container.position_y,
+              width: container.width,
+              height: container.height,
+              z_index: container.z_index,
+            },
+            notes.map((n) => ({
+              id: n.id,
+              position_x: n.position_x,
+              position_y: n.position_y,
+              width: n.width,
+              height: n.height,
+            })),
+            containerList.map((c) => ({
+              id: c.id,
+              x: c.position_x,
+              y: c.position_y,
+              width: c.width,
+              height: c.height,
+              z_index: c.z_index,
+            }))
+          ).length,
+          onUpdate: onUpdateContainer,
+          onDelete: onDeleteContainer,
+        },
+        style: { width: container.width, height: container.height },
+        draggable: !container.is_locked,
+        dragHandle: '.drag-handle__container',
+        selectable: true,
+        // Keep containers underneath notes regardless of insertion order.
+        zIndex: 0,
+      })),
+    [notes, onUpdateContainer, onDeleteContainer]
+  );
+
   // Live branch evaluation for conditional notes, used to highlight the
   // currently "active" outgoing connection as component values change.
   const allComponents = useComponentStore((s) => s.components);
@@ -567,11 +629,61 @@ function CanvasInner({
   useEffect(() => {
     // Only initialize once we have data (notes array exists, even if empty)
     if (!isInitializedRef.current) {
-      setNodes(notesToNodes(notes));
+      // Containers first so they paint behind notes.
+      setNodes([...containersToNodes(containers), ...notesToNodes(notes)]);
       setEdges(connectionsToEdges(connections, showGrid));
       isInitializedRef.current = true;
     }
-  }, [notes, connections, notesToNodes, connectionsToEdges, setNodes, setEdges, showGrid]);
+  }, [
+    notes,
+    connections,
+    containers,
+    notesToNodes,
+    containersToNodes,
+    connectionsToEdges,
+    setNodes,
+    setEdges,
+    showGrid,
+  ]);
+
+  // Keep container nodes in sync (added, removed, moved, resized, renamed).
+  useEffect(() => {
+    if (!isInitializedRef.current) return;
+
+    setNodes((currentNodes) => {
+      const containerIds = new Set(containers.map((c) => c.id));
+      // Drop containers that were deleted.
+      const kept = currentNodes.filter(
+        (node) => node.type !== 'containerNode' || containerIds.has(node.id)
+      );
+
+      const existingIds = new Set(
+        kept.filter((n) => n.type === 'containerNode').map((n) => n.id)
+      );
+      const added = containers.filter((c) => !existingIds.has(c.id));
+
+      const updated = kept.map((node) => {
+        if (node.type !== 'containerNode') return node;
+        const containerData = containers.find((c) => c.id === node.id);
+        if (!containerData) return node;
+
+        const isInteracting =
+          node.dragging === true || (node as { resizing?: boolean }).resizing === true;
+        const rebuilt = containersToNodes([containerData])[0];
+
+        return {
+          ...node,
+          data: rebuilt.data,
+          position: isInteracting ? node.position : rebuilt.position,
+          style: isInteracting ? node.style : rebuilt.style,
+          draggable: rebuilt.draggable,
+        };
+      });
+
+      // New containers go at the front so they stay behind the notes.
+      return added.length > 0 ? [...containersToNodes(added), ...updated] : updated;
+    });
+  }, [containers, containersToNodes, setNodes]);
 
   // Handle note additions only (not updates to existing notes)
   useEffect(() => {
@@ -651,7 +763,10 @@ function CanvasInner({
     // Remove deleted notes
     setNodes((currentNodes) => {
       const noteIds = new Set(notes.map((n) => n.id));
-      return currentNodes.filter((node) => noteIds.has(node.id));
+      // Container nodes aren't in `notes`; keep them (their own effect syncs them).
+      return currentNodes.filter(
+        (node) => node.type === 'containerNode' || noteIds.has(node.id)
+      );
     });
   }, [
     notes,
@@ -737,8 +852,24 @@ function CanvasInner({
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
       onNodesChange(changes);
+
+      // Persist container resizes once the drag finishes. Notes handle their
+      // own resize inside NoteNode; containers have no such internal handler.
+      changes.forEach((change) => {
+        if (
+          change.type === 'dimensions' &&
+          change.resizing === false &&
+          change.dimensions &&
+          containers.some((c) => c.id === change.id)
+        ) {
+          onUpdateContainer(change.id, {
+            width: change.dimensions.width,
+            height: change.dimensions.height,
+          });
+        }
+      });
     },
-    [onNodesChange]
+    [onNodesChange, containers, onUpdateContainer]
   );
 
   // Track drag start positions for undo
@@ -753,9 +884,64 @@ function CanvasInner({
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       const startPos = dragStartPositions.current.get(node.id);
+      const moved = startPos && (startPos.x !== node.position.x || startPos.y !== node.position.y);
+
+      // Containers carry their contents: apply the same delta to every note
+      // inside, then persist the container's own position.
+      if (node.type === 'containerNode') {
+        const container = containers.find((c) => c.id === node.id);
+        dragStartPositions.current.delete(node.id);
+        if (!container) return;
+
+        if (moved && startPos) {
+          const dx = node.position.x - startPos.x;
+          const dy = node.position.y - startPos.y;
+
+          // Membership is computed from the container's ORIGINAL bounds, so we
+          // move exactly the notes that were inside when the drag began.
+          const containedNotes = notesInContainer(
+            {
+              id: container.id,
+              x: startPos.x,
+              y: startPos.y,
+              width: container.width,
+              height: container.height,
+              z_index: container.z_index,
+            },
+            notes.map((n) => ({
+              id: n.id,
+              position_x: n.position_x,
+              position_y: n.position_y,
+              width: n.width,
+              height: n.height,
+            })),
+            containers.map((c) => ({
+              id: c.id,
+              x: c.id === container.id ? startPos.x : c.position_x,
+              y: c.id === container.id ? startPos.y : c.position_y,
+              width: c.width,
+              height: c.height,
+              z_index: c.z_index,
+            }))
+          );
+
+          containedNotes.forEach((contained) => {
+            onUpdateNote(contained.id, {
+              position_x: contained.position_x + dx,
+              position_y: contained.position_y + dy,
+            });
+          });
+        }
+
+        onUpdateContainer(node.id, {
+          position_x: node.position.x,
+          position_y: node.position.y,
+        });
+        return;
+      }
 
       // Only track if position actually changed
-      if (startPos && (startPos.x !== node.position.x || startPos.y !== node.position.y)) {
+      if (moved && startPos) {
         pushAction({
           type: 'MOVE_NOTE',
           undo: {
@@ -771,12 +957,44 @@ function CanvasInner({
 
       dragStartPositions.current.delete(node.id);
 
+      // Dropping a note into or out of a container updates its membership.
+      const droppedNote = notes.find((n) => n.id === node.id);
+      if (droppedNote) {
+        const [change] = membershipChanges(
+          [
+            {
+              id: droppedNote.id,
+              position_x: node.position.x,
+              position_y: node.position.y,
+              width: droppedNote.width,
+              height: droppedNote.height,
+              container_id: droppedNote.container_id,
+            },
+          ],
+          containers.map((c) => ({
+            id: c.id,
+            x: c.position_x,
+            y: c.position_y,
+            width: c.width,
+            height: c.height,
+            z_index: c.z_index,
+          }))
+        );
+
+        onUpdateNote(node.id, {
+          position_x: node.position.x,
+          position_y: node.position.y,
+          ...(change ? { container_id: change.containerId } : {}),
+        });
+        return;
+      }
+
       onUpdateNote(node.id, {
         position_x: node.position.x,
         position_y: node.position.y,
       });
     },
-    [onUpdateNote, pushAction]
+    [onUpdateNote, onUpdateContainer, pushAction, containers, notes]
   );
 
   // Handle new connections
@@ -971,6 +1189,59 @@ function CanvasInner({
     [board.id, nodes.length, onCreateNote, getViewportCenter, pushAction]
   );
 
+  // Add a container. If notes are selected, the container is drawn around them
+  // (and they become its contents); otherwise it's placed at the viewport
+  // centre at a default size.
+  const handleAddContainer = useCallback(() => {
+    const selectedNotes = nodes
+      .filter((n) => n.selected && n.type !== 'containerNode')
+      .map((n) => notes.find((note) => note.id === n.id))
+      .filter((n): n is Note => Boolean(n));
+
+    const fitted = boundsAroundNotes(
+      selectedNotes.map((n) => ({
+        id: n.id,
+        position_x: n.position_x,
+        position_y: n.position_y,
+        width: n.width,
+        height: n.height,
+      }))
+    );
+
+    const center = getViewportCenter();
+    const bounds = fitted ?? {
+      x: center.x,
+      y: center.y,
+      width: DEFAULT_CONTAINER_SIZE.width,
+      height: DEFAULT_CONTAINER_SIZE.height,
+    };
+
+    // Names are unique per board at the database level, so avoid a collision.
+    const existingNames = new Set(containers.map((c) => c.name));
+    let suffix = containers.length + 1;
+    let name = `Container ${suffix}`;
+    while (existingNames.has(name)) {
+      suffix += 1;
+      name = `Container ${suffix}`;
+    }
+
+    onCreateContainer({
+      id: uuidv4(),
+      story_id: board.story_id,
+      board_id: board.id,
+      name,
+      position_x: bounds.x,
+      position_y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+      color: randomFrom(CONTAINER_COLORS),
+      background_opacity: 0.1,
+      is_collapsed: false,
+      is_locked: false,
+      z_index: 0,
+    });
+  }, [nodes, notes, containers, board.id, board.story_id, getViewportCenter, onCreateContainer]);
+
   // Zoom controls
   const handleZoomIn = useCallback(() => {
     reactFlowInstance.zoomIn({ duration: 200 });
@@ -1057,6 +1328,9 @@ function CanvasInner({
         case 'd':
           handleAddDrawing();
           break;
+        case 'c':
+          handleAddContainer();
+          break;
         case 'g':
           setShowGrid((g) => !g);
           break;
@@ -1080,6 +1354,7 @@ function CanvasInner({
     handleAddDrawing,
     handleAddConditionalNote,
     handleAddTechnicalNote,
+    handleAddContainer,
     handleUndo,
     handleRedo,
     handleZoomIn,
@@ -1158,6 +1433,7 @@ function CanvasInner({
             onAddDrawing={() => handleAddDrawing()}
             onAddConditional={() => handleAddConditionalNote()}
             onAddTechnical={() => handleAddTechnicalNote()}
+            onAddContainer={handleAddContainer}
             onToolChange={setActiveTool}
             onToggleGrid={() => setShowGrid(!showGrid)}
             onManualSave={handleManualSave}

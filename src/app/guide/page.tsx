@@ -170,6 +170,45 @@ const sections = [
     ),
   },
   {
+    id: 'containers',
+    heading: 'Containers',
+    body: (
+      <>
+        <p>
+          A <strong>container</strong> is a named region of the canvas that groups the notes inside
+          it — handy for marking out an act, a chapter, or a cluster of related scenes. Add one from
+          the toolbar or press <span className="font-mono">C</span>.
+        </p>
+        <ul>
+          <li>
+            If you <strong>select some notes first</strong>, the new container is drawn around them
+            automatically. Otherwise it appears at the centre of your view at a default size.
+          </li>
+          <li>
+            <strong>Membership is automatic:</strong> a note belongs to whichever container its
+            centre sits inside. Drag a note in or out and it joins or leaves — there&apos;s no
+            &ldquo;add to container&rdquo; step. The header shows a live note count.
+          </li>
+          <li>
+            <strong>Drag the header</strong> to move a container — everything inside moves with it.
+            Drag the edges to resize. The body is click-through, so notes on top stay usable.
+          </li>
+          <li>
+            <strong>Rename</strong> by double-clicking the name. Pick a colour, or lock a container
+            to prevent accidental moves, from its menu.
+          </li>
+          <li>
+            <strong>Deleting</strong> offers two choices: remove just the container and leave the
+            notes on the canvas, or delete the container along with everything inside it.
+          </li>
+        </ul>
+        <Tip>
+          Containers can overlap or nest — if a note sits inside two, it belongs to the smaller one.
+        </Tip>
+      </>
+    ),
+  },
+  {
     id: 'components',
     heading: 'Components',
     body: (
