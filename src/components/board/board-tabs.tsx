@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, MoreHorizontal, Pencil, Trash2, Copy } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Trash2, Copy, LayoutGrid } from 'lucide-react';
 import type { Board } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ interface BoardTabsProps {
   onRename: (boardId: string, title: string) => void;
   onDelete: (boardId: string) => void;
   onDuplicate: (boardId: string) => void;
+  onOpenOverview: () => void;
 }
 
 export function BoardTabs({
@@ -40,6 +41,7 @@ export function BoardTabs({
   onRename,
   onDelete,
   onDuplicate,
+  onOpenOverview,
 }: BoardTabsProps) {
   const [dialog, setDialog] = useState<
     { mode: 'create' } | { mode: 'rename'; board: Board } | { mode: 'delete'; board: Board } | null
@@ -141,6 +143,17 @@ export function BoardTabs({
           title="New board"
         >
           <Plus className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0"
+          onClick={onOpenOverview}
+          aria-label="All boards"
+          title="All boards — search and organise"
+        >
+          <LayoutGrid className="h-4 w-4" />
         </Button>
       </div>
 

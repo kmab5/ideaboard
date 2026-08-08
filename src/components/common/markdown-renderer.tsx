@@ -4,6 +4,14 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import React, { useMemo } from 'react';
+import {
+  splitTextByLinks,
+  resolveLink,
+  linkLabel,
+  type LinkableBoard,
+  type LinkableContainer,
+  type ResolvedLink,
+} from '@/lib/links';
 
 /** Minimal component shape the renderer needs to resolve `{{references}}`. */
 export interface ReferenceComponent {
@@ -20,6 +28,12 @@ interface MarkdownRendererProps {
   components?: ReferenceComponent[];
   /** Called when a valid reference chip is clicked. */
   onReferenceClick?: (name: string) => void;
+  /** Boards in the story, for resolving `#board` links. */
+  boards?: LinkableBoard[];
+  /** Containers in the story, for resolving `#board/container` links. */
+  containers?: LinkableContainer[];
+  /** Called when a valid board/container link is clicked. */
+  onLinkClick?: (link: ResolvedLink) => void;
 }
 
 type ResolveReference = (name: string) => ReferenceComponent | undefined;
@@ -124,6 +138,9 @@ export function MarkdownRenderer({
   className,
   components,
   onReferenceClick,
+  boards,
+  containers,
+  onLinkClick,
 }: MarkdownRendererProps) {
   // Case-insensitive lookup, mirroring the component store's name matching.
   const resolve = useMemo<ResolveReference>(() => {
@@ -131,15 +148,91 @@ export function MarkdownRenderer({
     return (name: string) => map.get(name.toLowerCase());
   }, [components]);
 
-  const renderText = (children: React.ReactNode) =>
-    React.Children.map(children, (child) =>
-      typeof child === 'string' ? (
+  // Text runs pass through link splitting first, then component-reference
+  // splitting, so a single string can contain both kinds of token.
+  const renderTextRun = (value: string, keyPrefix: string) => {
+    const segments = splitTextByLinks(value);
+    if (segments.length === 1 && segments[0].type === 'text') {
+      return (
         <TextWithComponents resolve={resolve} onReferenceClick={onReferenceClick}>
-          {child}
+          {value}
         </TextWithComponents>
-      ) : (
-        child
-      )
+      );
+    }
+
+    return segments.map((segment, index) => {
+      if (segment.type === 'text') {
+        return (
+          <TextWithComponents
+            key={`${keyPrefix}-t${index}`}
+            resolve={resolve}
+            onReferenceClick={onReferenceClick}
+          >
+            {segment.value}
+          </TextWithComponents>
+        );
+      }
+
+      const resolved = resolveLink(segment.target, boards ?? [], containers ?? []);
+      const label = linkLabel(segment.target);
+
+      if (!resolved.valid) {
+        return (
+          <span
+            key={`${keyPrefix}-l${index}`}
+            className="inline-flex items-center gap-0.5 rounded border border-amber-400 bg-amber-500/15 px-1.5 py-0.5 font-mono text-xs font-semibold text-amber-700 dark:text-amber-300"
+            title={
+              resolved.boardId
+                ? `No container "${segment.target.containerName}" on board "${segment.target.boardName}"`
+                : `No board named "${segment.target.boardName}"`
+            }
+          >
+            <span aria-hidden>⚠</span>
+            {label}
+          </span>
+        );
+      }
+
+      const clickable = Boolean(onLinkClick);
+      return (
+        <span
+          key={`${keyPrefix}-l${index}`}
+          role={clickable ? 'button' : undefined}
+          tabIndex={clickable ? 0 : undefined}
+          onClick={
+            clickable
+              ? (e) => {
+                  e.stopPropagation();
+                  onLinkClick?.(resolved);
+                }
+              : undefined
+          }
+          onKeyDown={
+            clickable
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onLinkClick?.(resolved);
+                  }
+                }
+              : undefined
+          }
+          className={cn(
+            'inline-flex items-center rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-xs font-semibold text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-300',
+            clickable && 'cursor-pointer hover:bg-emerald-500/30'
+          )}
+          title={segment.target.containerName ? 'Go to container' : 'Go to board'}
+        >
+          {label}
+        </span>
+      );
+    });
+  };
+
+  const renderText = (children: React.ReactNode) =>
+    React.Children.map(children, (child, index) =>
+      typeof child === 'string' ? renderTextRun(child, `r${index}`) : child
     );
 
   return (

@@ -1,3 +1,3 @@
 // Single source of truth for the app version, kept in sync with package.json
 // and LOG.md. Bump on every release and add a matching LOG.md entry.
-export const APP_VERSION = '0.13.0';
+export const APP_VERSION = '0.14.0';

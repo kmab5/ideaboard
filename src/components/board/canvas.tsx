@@ -49,6 +49,7 @@ import {
 } from '@/lib/conditions';
 import { parseTechnicalData, applyUpdate, type TechnicalUpdate } from '@/lib/technical';
 import { notesInContainer, membershipChanges, boundsAroundNotes } from '@/lib/containers';
+import type { LinkableBoard, LinkableContainer, ResolvedLink } from '@/lib/links';
 
 // Custom node types - memoized to prevent recreation warnings
 const defaultNodeTypes = {
@@ -89,6 +90,12 @@ interface CanvasProps {
   onUpdateViewport: (x: number, y: number, zoom: number) => void;
   /** When set, pan to and select this note (e.g. from the component panel). */
   focusNoteId?: string | null;
+  /** Every board/container in the story, for resolving `#board/container` links. */
+  linkBoards?: LinkableBoard[];
+  linkContainers?: LinkableContainer[];
+  onLinkClick?: (link: ResolvedLink) => void;
+  /** When set, pan to and select this container (e.g. from a link). */
+  focusContainerId?: string | null;
 }
 
 // Inner component that uses the React Flow hooks
@@ -108,6 +115,10 @@ function CanvasInner({
   onDeleteContainer,
   onUpdateViewport,
   focusNoteId,
+  linkBoards,
+  linkContainers,
+  onLinkClick,
+  focusContainerId,
 }: CanvasProps) {
   // Track if initial load is complete
   const isInitializedRef = useRef(false);
@@ -351,6 +362,9 @@ function CanvasInner({
             onUpdate: onUpdateNote,
             onDelete: onDeleteNote,
             onImageUpload: note.type === 'drawing' ? undefined : handleImageUpload,
+            linkBoards,
+            linkContainers,
+            onLinkClick,
             ...(isConditional
               ? {
                   onSaveBranches: handleSaveBranches,
@@ -380,6 +394,9 @@ function CanvasInner({
       handleSaveBranches,
       handleSaveTechnicalUpdates,
       handleApplyTechnicalUpdates,
+      linkBoards,
+      linkContainers,
+      onLinkClick,
     ]
   );
 
@@ -422,7 +439,12 @@ function CanvasInner({
           onUpdate: onUpdateContainer,
           onDelete: onDeleteContainer,
         },
-        style: { width: container.width, height: container.height },
+        // A collapsed container shrinks to just its header strip; the stored
+        // height is untouched so expanding restores the original size.
+        style: {
+          width: container.width,
+          height: container.is_collapsed ? 32 : container.height,
+        },
         draggable: !container.is_locked,
         dragHandle: '.drag-handle__container',
         selectable: true,
@@ -796,6 +818,9 @@ function CanvasInner({
             onUpdate: onUpdateNote,
             onDelete: onDeleteNote,
             onImageUpload: noteData.type === 'drawing' ? undefined : handleImageUpload,
+            linkBoards,
+            linkContainers,
+            onLinkClick,
             ...(isConditional
               ? {
                   onSaveBranches: handleSaveBranches,
@@ -835,6 +860,9 @@ function CanvasInner({
     handleSaveBranches,
     handleSaveTechnicalUpdates,
     handleApplyTechnicalUpdates,
+    linkBoards,
+    linkContainers,
+    onLinkClick,
     setNodes,
   ]);
 
@@ -918,6 +946,23 @@ function CanvasInner({
       onUpdateNote(noteId, { container_id: containerId });
     });
   }, [containers, notes, onUpdateNote]);
+
+  // Pan to a container when a link targets one.
+  useEffect(() => {
+    if (!focusContainerId) return;
+    const container = containers.find((c) => c.id === focusContainerId);
+    if (!container) return;
+
+    reactFlowInstance.setCenter(
+      container.position_x + container.width / 2,
+      container.position_y + container.height / 2,
+      { zoom: 0.8, duration: 400 }
+    );
+    setNodes((current) =>
+      current.map((node) => ({ ...node, selected: node.id === focusContainerId }))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusContainerId]);
 
   // Pan to and select a note when asked (e.g. from the component panel's
   // "used in" list). focusNoteId is cleared by the parent after each request.

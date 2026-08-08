@@ -65,6 +65,11 @@ const sections = [
             <strong>Fit to screen</strong> recenters everything you&apos;ve made.
           </li>
           <li>
+            <strong>Snap to grid</strong> (magnet icon, or <span className="font-mono">Shift+G</span>
+            ) aligns everything you move to a 20px grid. It&apos;s separate from showing the grid, so
+            you can snap without the dots or see the dots without snapping.
+          </li>
+          <li>
             The toolbar adds notes, drawings, and connections, and opens the components panel.
           </li>
         </ul>
@@ -97,6 +102,13 @@ const sections = [
           <li>
             <strong>Delete</strong> removes the board and everything on it. A story always keeps at
             least one board, so the last one can&apos;t be deleted.
+          </li>
+        </ul>
+        <ul>
+          <li>
+            The <strong>grid icon</strong> at the end of the tab strip opens an overview of every
+            board: search them by name, see how many notes each holds, and group them into{' '}
+            <strong>folders</strong>. Deleting a folder keeps its boards — they just become unfiled.
           </li>
         </ul>
         <Tip>
@@ -202,9 +214,51 @@ const sections = [
             notes on the canvas, or delete the container along with everything inside it.
           </li>
         </ul>
+        <ul>
+          <li>
+            <strong>Collapse</strong> a container with the chevron in its header to shrink it to a
+            single strip. The notes inside stay on the canvas; they&apos;re just no longer framed.
+          </li>
+          <li>
+            The <strong>Containers</strong> button in the header opens a panel listing every
+            container on the board — search them, edit names and descriptions inline, expand one to
+            see the notes inside, and click through to jump to any of them.
+          </li>
+        </ul>
         <Tip>
           Containers can overlap or nest — if a note sits inside two, it belongs to the smaller one.
         </Tip>
+      </>
+    ),
+  },
+  {
+    id: 'links',
+    heading: 'Linking between boards',
+    body: (
+      <>
+        <p>
+          Inside a note you can link to another board, or to a container on it, using{' '}
+          <span className="font-mono">#</span>. Click a link to jump straight there.
+        </p>
+        <ul>
+          <li>
+            <span className="font-mono">#Prologue</span> — go to the board named Prologue.
+          </li>
+          <li>
+            <span className="font-mono">#Prologue/Vault</span> — go to the container Vault on that
+            board.
+          </li>
+          <li>
+            <strong>Names with spaces need brackets:</strong>{' '}
+            <span className="font-mono">#(Act One)</span> or{' '}
+            <span className="font-mono">#(Act One/The Vault)</span>. Without them the link would have
+            no way to tell where the name ends and your sentence continues.
+          </li>
+          <li>
+            A link to something that doesn&apos;t exist shows an amber warning, the same as an
+            invalid component reference — so a renamed board never leaves a silently dead link.
+          </li>
+        </ul>
       </>
     ),
   },

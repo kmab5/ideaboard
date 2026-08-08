@@ -7,3 +7,4 @@ export { Toolbar } from './toolbar';
 export { Canvas } from './canvas';
 export { ContainerNode } from './container-node';
 export { BoardTabs } from './board-tabs';
+export { BoardOverview } from './board-overview';

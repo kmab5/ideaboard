@@ -2,7 +2,7 @@
 
 import { memo, useState } from 'react';
 import { type NodeProps, NodeResizer } from 'reactflow';
-import { Box, MoreHorizontal, Trash2, Lock, Unlock } from 'lucide-react';
+import { Box, MoreHorizontal, Trash2, Lock, Unlock, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Container } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +44,7 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
   return (
     <>
       <NodeResizer
-        isVisible={selected && !container.is_locked}
+        isVisible={selected && !container.is_locked && !container.is_collapsed}
         minWidth={200}
         minHeight={160}
         handleStyle={{ width: 8, height: 8 }}
@@ -81,6 +81,22 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
           className="drag-handle__container flex cursor-move items-center gap-1.5 px-2 py-1"
           style={{ backgroundColor: `${color}26` }}
         >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdate(container.id, { is_collapsed: !container.is_collapsed });
+            }}
+            className="shrink-0 rounded p-0.5 hover:bg-black/10"
+            aria-label={container.is_collapsed ? 'Expand container' : 'Collapse container'}
+            title={container.is_collapsed ? 'Expand' : 'Collapse'}
+          >
+            {container.is_collapsed ? (
+              <ChevronRight className="h-3.5 w-3.5" style={{ color }} />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" style={{ color }} />
+            )}
+          </button>
           <Box className="h-3.5 w-3.5 shrink-0" style={{ color }} />
 
           {isEditingName ? (
@@ -128,6 +144,16 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setIsEditingName(true)}>Rename</DropdownMenuItem>
               <DropdownMenuItem
+                onClick={() => onUpdate(container.id, { is_collapsed: !container.is_collapsed })}
+              >
+                {container.is_collapsed ? (
+                  <ChevronDown className="mr-2 h-4 w-4" />
+                ) : (
+                  <ChevronRight className="mr-2 h-4 w-4" />
+                )}
+                {container.is_collapsed ? 'Expand' : 'Collapse'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={() => onUpdate(container.id, { is_locked: !container.is_locked })}
               >
                 {container.is_locked ? (
@@ -171,8 +197,10 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
           </DropdownMenu>
         </div>
 
-        {/* Body is pointer-transparent so notes stacked above stay clickable. */}
-        <div className="pointer-events-none flex-1" />
+        {/* Body is pointer-transparent so notes stacked above stay clickable.
+            Collapsing hides it entirely, leaving just the header strip — the
+            notes inside stay on the canvas, they're simply no longer framed. */}
+        {!container.is_collapsed && <div className="pointer-events-none flex-1" />}
       </div>
     </>
   );

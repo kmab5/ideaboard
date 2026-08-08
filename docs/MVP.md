@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** January 14, 2026 (updated August 4, 2026)
-**Status:** ✅ **MVP COMPLETE** · ✅ **v1.1 COMPLETE** — app version `0.12.0`, deployed, security-audited. See `LOG.md` and `SECURITY.md`.
+**Status:** ✅ **MVP COMPLETE** · ✅ **v1.1 COMPLETE (incl. all deferred items)** — app version `0.14.0`, deployed, security-audited. See `LOG.md` and `SECURITY.md`.
 
 ---
 
@@ -65,6 +65,18 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 - Inserts run parents-first (story → components → boards → containers → notes → connections). If any step fails the new story is deleted, which cascades the partial import away rather than leaving a broken story behind.
 - Validation rejects non-JSON, unrelated JSON, exports with no boards, malformed boards, and — with an actionable message — files written by a *newer* format version.
 - The import dialog previews counts (boards/notes/connections/containers/components) before anything is created, and warns on a duplicate title.
+
+### v1.1 deferred items — shipped in v0.14.0
+
+Everything previously carried as "deferred from v1.1" is now implemented:
+
+- **Board linking & cross-board navigation** (PRD 4.5) — `#Board` and `#Board/Container` in note text, rendered as clickable chips that switch boards and pan to the target. The bare form is deliberately single-word; multi-word names use `#(Act One/The Vault)`, since allowing spaces in the bare form makes "where does the name end" unanswerable. `formatLink()` emits the correct form automatically and is round-trip tested.
+- **Container references** (PRD 4.7.4) — the `#Board/Container` half of the above. A container-qualified link only resolves when the container is actually on the named board, so a same-named container elsewhere is never silently targeted.
+- **Container Panel** (PRD 4.7.3) — floating panel with search, inline name/description editing, contents preview, go-to-container, go-to-note, and delete with keep-or-remove contents.
+- **Container collapse/expand** (PRD 4.7.1) — chevron in the header; collapsing renders the container at header height while leaving the stored height untouched, so expanding restores the original size.
+- **Board folders, board search, and board overview** (PRD 4.5) — one panel behind the grid icon in the tab strip: search by name/description, per-board note counts (fetched lazily so the board never waits on them), folder create/rename/delete, and move-board-to-folder. Deleting a folder keeps its boards, which become unfiled (`boards.folder_id` is `ON DELETE SET NULL`).
+
+Still not implemented, and now the only outstanding export-related items: the `.ibs` binary format and bulk export/import (PRD 4.9.2, 4.9.4).
 
 ---
 

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Settings, Loader2 } from 'lucide-react';
+import { ArrowLeft, Settings, Loader2, Box } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from '@/lib/supabase/client';
 import { useStoryStore, useComponentStore } from '@/lib/store';
@@ -11,10 +11,11 @@ import { extractReferenceNames } from '@/lib/references';
 import { cloneBoardContents, resolveActiveBoard } from '@/lib/boards';
 import { uniqueContainerName, notesInContainer } from '@/lib/containers';
 import { friendlyDbError } from '@/lib/db-errors';
-import type { Board, Note, Connection, Container } from '@/types/database';
+import type { ResolvedLink } from '@/lib/links';
+import type { Board, BoardFolder, Note, Connection, Container } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { Canvas, BoardTabs } from '@/components/board';
-import { ComponentPanel } from '@/components/panels';
+import { Canvas, BoardTabs, BoardOverview } from '@/components/board';
+import { ComponentPanel, ContainerPanel } from '@/components/panels';
 import { ThemeToggle } from '@/components/common';
 import { toast } from 'sonner';
 
@@ -42,6 +43,15 @@ export default function BoardPage() {
   const [isSwitchingBoard, setIsSwitchingBoard] = useState(false);
   // Note the panel asks the canvas to focus (pan/select). Null clears it.
   const [focusNoteId, setFocusNoteId] = useState<string | null>(null);
+  const [focusContainerId, setFocusContainerId] = useState<string | null>(null);
+  const [isContainerPanelOpen, setIsContainerPanelOpen] = useState(false);
+  const [isBoardOverviewOpen, setIsBoardOverviewOpen] = useState(false);
+  const [folders, setFolders] = useState<BoardFolder[]>([]);
+  const [boardNoteCounts, setBoardNoteCounts] = useState<Record<string, number>>({});
+  const [isLoadingCounts, setIsLoadingCounts] = useState(false);
+  // Every container in the story (not just the open board), so `#board/container`
+  // links can resolve to targets on boards that aren't currently loaded.
+  const [allStoryContainers, setAllStoryContainers] = useState<Container[]>([]);
 
   // Debounce ref for auto-save
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -127,6 +137,21 @@ export default function BoardPage() {
 
         setComponents(componentsResult.data || []);
 
+        // Story-wide containers power `#board/container` link resolution across
+        // boards that aren't currently loaded.
+        const storyContainersResult = await supabase
+          .from('containers')
+          .select('*')
+          .eq('story_id', storyId);
+        setAllStoryContainers(storyContainersResult.data || []);
+
+        const foldersResult = await supabase
+          .from('board_folders')
+          .select('*')
+          .eq('story_id', storyId)
+          .order('sort_order');
+        setFolders(foldersResult.data || []);
+
         const allBoards = boardsResult.data || [];
         setBoards(allBoards);
 
@@ -206,6 +231,130 @@ export default function BoardPage() {
       }
     },
     [board?.id, boards, supabase, router, storyId]
+  );
+
+  // Follow a `#board` / `#board/container` link. Switching boards reuses the
+  // in-place swap, then the container (if any) is focused once it has loaded.
+  const handleLinkClick = useCallback(
+    async (link: ResolvedLink) => {
+      if (!link.boardId) return;
+
+      if (link.boardId !== board?.id) {
+        await handleSelectBoard(link.boardId);
+      }
+
+      if (link.containerId) {
+        setFocusContainerId(link.containerId);
+        // Clear so re-clicking the same link focuses again.
+        window.setTimeout(() => setFocusContainerId(null), 150);
+      }
+    },
+    [board?.id, handleSelectBoard]
+  );
+
+  // Note counts for the overview, fetched lazily when the panel opens so the
+  // board itself never waits on them.
+  const loadBoardNoteCounts = useCallback(async () => {
+    setIsLoadingCounts(true);
+    try {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('board_id')
+        .in('board_id', boards.map((b) => b.id));
+      if (error) throw error;
+
+      const counts: Record<string, number> = {};
+      boards.forEach((b) => (counts[b.id] = 0));
+      (data ?? []).forEach((row: { board_id: string }) => {
+        counts[row.board_id] = (counts[row.board_id] ?? 0) + 1;
+      });
+      setBoardNoteCounts(counts);
+    } catch (error) {
+      console.error('Error loading board counts:', error);
+    } finally {
+      setIsLoadingCounts(false);
+    }
+  }, [supabase, boards]);
+
+  const handleCreateFolder = useCallback(
+    async (name: string) => {
+      const folder = {
+        id: uuidv4(),
+        story_id: storyId,
+        name,
+        sort_order: folders.length,
+      };
+      setFolders((prev) => [...prev, folder as BoardFolder]);
+      try {
+        const { error } = await supabase.from('board_folders').insert(folder);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error creating folder:', error);
+        toast.error(friendlyDbError(error, 'Failed to create folder'));
+        setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+      }
+    },
+    [storyId, folders.length, supabase]
+  );
+
+  const handleRenameFolder = useCallback(
+    async (id: string, name: string) => {
+      const previous = folders.find((f) => f.id === id);
+      setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
+      try {
+        const { error } = await supabase.from('board_folders').update({ name }).eq('id', id);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error renaming folder:', error);
+        toast.error(friendlyDbError(error, 'Failed to rename folder'));
+        if (previous) setFolders((prev) => prev.map((f) => (f.id === id ? previous : f)));
+      }
+    },
+    [folders, supabase]
+  );
+
+  // Deleting a folder keeps its boards; they simply become unfiled
+  // (boards.folder_id is ON DELETE SET NULL).
+  const handleDeleteFolder = useCallback(
+    async (id: string) => {
+      const previousFolders = folders;
+      const previousBoards = boards;
+      setFolders((prev) => prev.filter((f) => f.id !== id));
+      setBoards((prev) => prev.map((b) => (b.folder_id === id ? { ...b, folder_id: null } : b)));
+
+      try {
+        const { error } = await supabase.from('board_folders').delete().eq('id', id);
+        if (error) throw error;
+        toast.success('Folder deleted — its boards are now unfiled');
+      } catch (error) {
+        console.error('Error deleting folder:', error);
+        toast.error(friendlyDbError(error, 'Failed to delete folder'));
+        setFolders(previousFolders);
+        setBoards(previousBoards);
+      }
+    },
+    [folders, boards, supabase]
+  );
+
+  const handleMoveBoardToFolder = useCallback(
+    async (boardId: string, folderId: string | null) => {
+      const previous = boards.find((b) => b.id === boardId);
+      setBoards((prev) =>
+        prev.map((b) => (b.id === boardId ? { ...b, folder_id: folderId } : b))
+      );
+      try {
+        const { error } = await supabase
+          .from('boards')
+          .update({ folder_id: folderId })
+          .eq('id', boardId);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error moving board:', error);
+        toast.error(friendlyDbError(error, 'Failed to move board'));
+        if (previous) setBoards((prev) => prev.map((b) => (b.id === boardId ? previous : b)));
+      }
+    },
+    [boards, supabase]
   );
 
   const handleCreateBoard = useCallback(
@@ -370,6 +519,15 @@ export default function BoardPage() {
   // ---------------------------------------------------------------------
   // Containers
   // ---------------------------------------------------------------------
+
+  // Mirror board-level container changes into the story-wide list so links
+  // resolve immediately without a refetch.
+  useEffect(() => {
+    setAllStoryContainers((prev) => {
+      const others = prev.filter((c) => c.board_id !== board?.id);
+      return [...others, ...containers];
+    });
+  }, [containers, board?.id]);
 
   const handleCreateContainer = useCallback(
     async (container: Partial<Container>) => {
@@ -776,6 +934,14 @@ export default function BoardPage() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsContainerPanelOpen((v) => !v)}
+          >
+            <Box className="mr-2 h-4 w-4" />
+            Containers
+          </Button>
           <Button variant="outline" size="sm" onClick={togglePanel}>
             <Settings className="mr-2 h-4 w-4" />
             Components
@@ -785,6 +951,10 @@ export default function BoardPage() {
 
       {/* Board tabs */}
       <BoardTabs
+        onOpenOverview={() => {
+          setIsBoardOverviewOpen(true);
+          void loadBoardNoteCounts();
+        }}
         boards={boards}
         activeBoardId={board.id}
         onSelect={handleSelectBoard}
@@ -820,7 +990,54 @@ export default function BoardPage() {
           onDeleteContainer={handleDeleteContainer}
           onUpdateViewport={handleUpdateViewport}
           focusNoteId={focusNoteId}
+          focusContainerId={focusContainerId}
+          linkBoards={boards.map((b) => ({ id: b.id, title: b.title }))}
+          linkContainers={allStoryContainers.map((c) => ({
+            id: c.id,
+            name: c.name,
+            board_id: c.board_id,
+          }))}
+          onLinkClick={handleLinkClick}
         />
+
+        {/* Board overview: search, folders, note counts */}
+        {isBoardOverviewOpen && (
+          <BoardOverview
+            boards={boards}
+            folders={folders}
+            activeBoardId={board.id}
+            stats={boardNoteCounts}
+            isLoadingStats={isLoadingCounts}
+            onClose={() => setIsBoardOverviewOpen(false)}
+            onSelect={(id) => {
+              void handleSelectBoard(id);
+              setIsBoardOverviewOpen(false);
+            }}
+            onCreateFolder={handleCreateFolder}
+            onRenameFolder={handleRenameFolder}
+            onDeleteFolder={handleDeleteFolder}
+            onMoveBoard={handleMoveBoardToFolder}
+          />
+        )}
+
+        {/* Container Panel */}
+        {isContainerPanelOpen && (
+          <ContainerPanel
+            containers={containers}
+            notes={notes}
+            onClose={() => setIsContainerPanelOpen(false)}
+            onUpdate={handleUpdateContainer}
+            onDelete={handleDeleteContainer}
+            onFocusContainer={(id) => {
+              setFocusContainerId(id);
+              window.setTimeout(() => setFocusContainerId(null), 150);
+            }}
+            onFocusNote={(id) => {
+              setFocusNoteId(id);
+              window.setTimeout(() => setFocusNoteId(null), 150);
+            }}
+          />
+        )}
 
         {/* Component Panel */}
         {isPanelOpen && (

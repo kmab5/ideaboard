@@ -6,31 +6,60 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.13.0`** · Status: MVP complete · v1.1 complete · hardening pass.
+**Current version: `0.14.0`** · Status: MVP complete · v1.1 complete, **including every deferred item**.
 
 ---
 
-## Latest updates — v0.13.0
+## Latest updates — v0.14.0
 
-- **Fixed: your middleware was never running.** `middleware.ts` was at the project root, but Next.js expects `src/middleware.ts` when a project uses a `src/` directory — so it was silently ignored, and had been since the project began. Route protection, session refresh, and the per-IP rate limiting from v0.6.1 were all inert. Now verified working.
-- **Fixed: container resizing sticks.** The previous fix pinned the box to its stored size, which stopped it following the resize handles at all — it looked like every resize was rejected. Sizes now persist correctly and survive reload.
-- **Snap to grid** — toolbar toggle or `Shift+G`, independent of grid visibility.
-- **One-click undo for a technical note's Apply** — a single `Ctrl+Z` restores every component the note changed.
-- **Write-path rate limiting** — board writes go straight from your browser to Supabase, so they're now limited in the database itself (600/min per user) rather than by a server that never sees them.
-
-> ⚠️ **Action required after deploying:** run `docs/database/migrations/004_write_rate_limiting.sql` in Supabase.
+- **Board & container links.** Write `#Prologue` or `#Prologue/Vault` in a note and it becomes a clickable chip that jumps to that board — switching boards and panning to the container. Names with spaces use `#(Act One/The Vault)`. Links to something that no longer exists show an amber warning instead of dying silently.
+- **Container Panel** — search every container on the board, edit names and descriptions inline, expand one to see the notes inside, click through to any of them, and delete with keep-or-remove contents.
+- **Container collapse/expand** — chevron in the header shrinks a container to a single strip; the notes inside stay put and the original size is restored on expand.
+- **Board overview** — the grid icon in the tab strip opens search across all boards, per-board note counts, and **folders** for grouping. Deleting a folder keeps its boards; they become unfiled.
 
 ## Upcoming / planned
 
-- **Deferred v1.1 features (not started):** board linking (`#boardname`) and cross-board navigation; the Container Panel (PRD 4.7.3), container references and collapse/expand; board folders, search, and the overview dashboard.
-- **Nonce-based CSP** — built and reverted this release; needs a decision on trading static rendering for it (see `SECURITY.md`).
 - **v1.2** — sharing & permissions, then real-time collaboration, then version history.
+- **Nonce-based CSP** — built and reverted in v0.13.0; needs a decision on trading static rendering for it (see `SECURITY.md`).
+- **Not implemented from the PRD:** the `.ibs` binary export format and bulk export/import.
 - **Components** — optional *selected value* for list components, and a note "show values" toggle.
 - **Optional** — error monitoring (Sentry).
 
 ---
 
 ## Changelog
+
+### [0.14.0] — 2026-08-08
+
+**All remaining v1.1 deferred features**
+
+*Board linking & cross-board navigation (PRD 4.5)*
+- `#Board` and `#Board/Container` tokens in note text render as clickable chips; clicking switches board (reusing the in-place swap, no page reload) and pans to the container.
+- The bare form is **single-word by design**. An earlier draft allowed spaces and the parser swallowed whole sentences — `#Act One then rest` has no way to know the name ends at "One". Multi-word names use `#(Act One/The Vault)`, and `formatLink()` picks the right form automatically (round-trip tested).
+- Unresolvable links render an amber warning chip, matching invalid `{{component}}` references, so a renamed board leaves a visible signal rather than dead text.
+- Story-wide containers are loaded for resolution, so a link can target a board that isn't currently open.
+
+*Container references (PRD 4.7.4)*
+- A container-qualified link resolves **only** when the container is on the named board — a same-named container on another board is never silently targeted. Covered by a test.
+
+*Container Panel (PRD 4.7.3)*
+- Floating panel: search by name/description, inline name and description editing, expandable contents preview, go-to-container, go-to-note, and delete with keep-or-remove contents. Contents come from the same geometric membership used everywhere else, so the list always matches what's visually inside.
+
+*Container collapse/expand (PRD 4.7.1)*
+- Chevron in the container header. Collapsing renders at header height while leaving the stored height untouched, so expanding restores the original size. The notes inside are unaffected — they stay on the canvas, just unframed.
+
+*Board folders, search, and overview (PRD 4.5)*
+- One panel behind the grid icon in the tab strip: search across boards, per-board note counts, folder create/rename/delete, and move-board-to-folder.
+- Note counts are fetched lazily when the panel opens, so opening a board never waits on them.
+- Deleting a folder keeps its boards, which become unfiled (`boards.folder_id` is `ON DELETE SET NULL`).
+
+**Docs**
+- Guide gained a "Linking between boards" section, plus coverage of snap-to-grid, container collapse and the Container Panel, and the board overview.
+- `MVP.md` records every deferred item as shipped, leaving only `.ibs` and bulk export/import outstanding from the PRD.
+
+**Files changed**
+- Added: `src/lib/links.ts`, `src/lib/links.test.ts`, `src/components/panels/container-panel.tsx`, `src/components/board/board-overview.tsx`
+- Modified: `src/components/common/markdown-renderer.tsx`, `src/components/board/note-node.tsx`, `src/components/board/canvas.tsx`, `src/components/board/container-node.tsx`, `src/components/board/board-tabs.tsx`, `src/components/board/index.ts`, `src/components/panels/index.ts`, `src/app/(board)/board/[id]/page.tsx`, `src/app/guide/page.tsx`, `docs/MVP.md`, `src/lib/version.ts`, `package.json`
 
 ### [0.13.0] — 2026-08-08
 

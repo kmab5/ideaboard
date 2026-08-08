@@ -31,12 +31,17 @@ import { MarkdownRenderer } from '@/components/common';
 import { useHistoryStore, useComponentStore } from '@/lib/store';
 import { NOTE_COLORS, NOTE_COLOR_BG, MIN_NOTE_SIZE, DOUBLE_TAP_DELAY_MS } from '@/lib/constants';
 import { ComponentAutocompleteTextarea } from './component-autocomplete';
+import type { LinkableBoard, LinkableContainer, ResolvedLink } from '@/lib/links';
 
 interface NoteNodeData {
   note: Note;
   onUpdate: (id: string, updates: Partial<Note>) => void;
   onDelete: (id: string) => void;
   onImageUpload?: (noteId: string, file: File) => Promise<string | null>;
+  /** Story-wide boards/containers, for resolving `#board/container` links. */
+  linkBoards?: LinkableBoard[];
+  linkContainers?: LinkableContainer[];
+  onLinkClick?: (link: ResolvedLink) => void;
 }
 
 // Available note colors are centralized in @/lib/constants (NOTE_COLORS).
@@ -608,6 +613,9 @@ const NoteNode = memo(({ data, selected }: NodeProps<NoteNodeData>) => {
                   content={content}
                   components={components}
                   onReferenceClick={() => setPanelOpen(true)}
+                  boards={data.linkBoards}
+                  containers={data.linkContainers}
+                  onLinkClick={data.onLinkClick}
                 />
               ) : (
                 <span className="italic text-gray-500">Double-tap to edit...</span>
