@@ -6,33 +6,51 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.11.0`** · Status: **MVP complete; v1.1 nearly done.** Only Export/Import remains.
+**Current version: `0.12.0`** · Status: **MVP complete · v1.1 complete.**
 
 ---
 
-## Latest updates — v0.11.0
+## Latest updates — v0.12.0
 
-- **Fixed: containers shrinking on their own.** Sizes are now persisted only from the actual resize action and pinned to the stored value, so a container keeps exactly the size you gave it.
-- **Comparison operators (`>`, `<`, `>=`, `<=`) added for string and list components**, not just numbers. Numbers compare numerically, lists by item count, and text lexicographically.
-- **Debug sweep fixed three real bugs**, including one that could silently lose notes: "delete container with contents" read a stale membership field instead of actual geometry, so it could miss notes that were visibly inside.
-- **Security audit re-run:** 0 dependency vulnerabilities; two new low/informational findings fixed (see `SECURITY.md`).
-
-> ⚠️ **Action required after deploying:** run `docs/database/migrations/003_container_integrity.sql` in Supabase.
+- **Export/Import shipped — v1.1 is now complete.** Export any story to a single `.ideaboard.json` file from its menu on the dashboard; import one back with the new **Import** button.
+- An export contains everything: the story, all its boards, notes, connections, containers, and components. Conditional branches, technical updates, and container groupings all survive the round trip.
+- **Importing always creates a new story** with fresh IDs — nothing you already have is overwritten or merged into. You can rename during import and get warned about duplicate titles.
+- The import dialog previews what's in the file (boards, notes, connections, containers, components) before anything is created.
 
 ## Upcoming / planned
 
-- **Export/Import** — the last v1.1 feature.
-- **Container Panel** (PRD 4.7.3), container references (`#board/container`), and collapse/expand.
-- **Board linking** (`#boardname`) and cross-board navigation, plus board folders/search/overview.
+- **v1.2** — sharing & permissions, then real-time collaboration, then version history.
+- **Deferred from v1.1:** board linking (`#boardname`) and cross-board navigation; the Container Panel (PRD 4.7.3), container references and collapse/expand; board folders, search, and the overview dashboard; `.ibs` binary export and bulk export/import.
 - **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src`.
 - **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes.
 - **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle.
 - **Optional** — error monitoring (Sentry), snap-to-grid, one-click undo for a technical note's "Apply".
-- **v1.2** — real-time collaboration and sharing, then version history.
 
 ---
 
 ## Changelog
+
+### [0.12.0] — 2026-08-08
+
+**Export/Import (final v1.1 feature — v1.1 complete)**
+- Export a story to one self-contained `.ideaboard.json` document containing the story, its components, and every board with that board's notes, connections and containers. Available from the story menu on the dashboard.
+- Import from a new dashboard button. The dialog validates the file and **previews its contents** (boards / notes / connections / containers / components) before creating anything, and lets you rename the story, warning if the title duplicates an existing one.
+- **Import always creates a new story** with fresh ids (PRD "Import as New", P0) — nothing is overwritten or merged, so an export can be restored alongside the original.
+- Ids meaningful only *inside* the document are deliberately preserved: a conditional note's branch ids (referenced by both `connections.branch_id` and `condition_data.branches[].id`) and a technical note's update ids. Remapping them would mean rewriting two structures in lockstep for no benefit. Component references in note content are by name, so they survive untouched.
+- Inserts run parents-first (story → components → boards → containers → notes → connections); if any step fails the new story is deleted, cascading the partial import away rather than leaving a broken story behind.
+- Validation rejects non-JSON, unrelated JSON, exports with no boards, malformed boards, and — with an actionable message — files written by a newer format version. Files over 25 MB are refused before parsing.
+- 18 new unit tests covering export assembly, validation, id remapping, container remapping, dropped-endpoint connections, branch-id preservation, and filename slugging.
+
+**Deviation from the docs**
+- The PRD (4.9.3) specifies a `.zip` containing separate `manifest.json` / `story.json` / `components.json` / `boards/*.json` entries. This ships as a **single JSON file** with those same sections as top-level keys: identical data, still human-readable, and it avoids adding a zip library to the browser bundle. The `.ibs` binary format (4.9.2) and bulk export/import are not implemented — both recorded in `MVP.md`.
+
+**Docs**
+- Guide updated with an "Export & import" section.
+- `MVP.md`: v1.1 marked complete, export/import implementation notes added, stale `.ibs`/`.zip` roadmap rows corrected.
+
+**Files changed**
+- Added: `src/lib/export-import.ts`, `src/lib/export-import.test.ts`, `src/lib/story-transfer.ts`, `src/components/common/import-story-dialog.tsx`
+- Modified: `src/components/common/story-card.tsx`, `src/components/common/index.ts`, `src/app/(dashboard)/stories/page.tsx`, `src/app/guide/page.tsx`, `docs/MVP.md`, `src/lib/version.ts`, `package.json`
 
 ### [0.11.0] — 2026-08-08
 

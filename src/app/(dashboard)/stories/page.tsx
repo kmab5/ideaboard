@@ -17,7 +17,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
-import { StoryCard, CreateStoryDialog, PageLoader } from '@/components/common';
+import { StoryCard, CreateStoryDialog, PageLoader, ImportStoryDialog } from '@/components/common';
+import { exportStory, downloadStoryExport, importStory } from '@/lib/story-transfer';
+import type { StoryExport } from '@/lib/export-import';
 import { toast } from 'sonner';
 
 export default function StoriesPage() {
@@ -196,6 +198,45 @@ export default function StoriesPage() {
     [supabase, removeStory]
   );
 
+  // Export a story as a single portable JSON document.
+  const handleExportStory = useCallback(
+    async (id: string) => {
+      const toastId = toast.loading('Preparing export...');
+      try {
+        const doc = await exportStory(supabase, id);
+        downloadStoryExport(doc);
+        toast.success(`Exported "${doc.story.title}"`, { id: toastId });
+      } catch (error) {
+        console.error('Error exporting story:', error);
+        toast.error('Failed to export story', { id: toastId });
+      }
+    },
+    [supabase]
+  );
+
+  // Import always creates a NEW story, so an export can be restored alongside
+  // the original without touching it.
+  const handleImportStory = useCallback(
+    async (doc: StoryExport, title: string) => {
+      if (!user) {
+        toast.error('You must be signed in to import');
+        throw new Error('Not authenticated');
+      }
+
+      const toastId = toast.loading('Importing story...');
+      try {
+        const { storyId } = await importStory(supabase, doc, user.id, title);
+        toast.success(`Imported "${title}"`, { id: toastId });
+        router.push(`/board/${storyId}`);
+      } catch (error) {
+        console.error('Error importing story:', error);
+        toast.error('Failed to import story', { id: toastId });
+        throw error;
+      }
+    },
+    [supabase, user, router]
+  );
+
   const handleRenameStory = useCallback(
     async (id: string, title: string) => {
       try {
@@ -231,7 +272,13 @@ export default function StoriesPage() {
             Create and manage your interactive narratives
           </p>
         </div>
-        <CreateStoryDialog onCreateStory={handleCreateStory} />
+        <div className="flex items-center gap-2">
+          <ImportStoryDialog
+            onImport={handleImportStory}
+            existingTitles={stories.map((s) => s.title)}
+          />
+          <CreateStoryDialog onCreateStory={handleCreateStory} />
+        </div>
       </div>
 
       {/* Filters */}
@@ -345,6 +392,7 @@ export default function StoriesPage() {
               onToggleArchive={handleToggleArchive}
               onDelete={handleDeleteStory}
               onRename={handleRenameStory}
+              onExport={handleExportStory}
             />
           ))}
         </div>

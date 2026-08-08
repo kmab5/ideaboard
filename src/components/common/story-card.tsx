@@ -3,7 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { MoreHorizontal, Star, Archive, Trash2, Edit2, BookOpen, Calendar } from 'lucide-react';
+import {
+  MoreHorizontal,
+  Star,
+  Archive,
+  Trash2,
+  Edit2,
+  BookOpen,
+  Calendar,
+  Download,
+} from 'lucide-react';
 import type { Story } from '@/types/database';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +40,7 @@ interface StoryCardProps {
   onToggleArchive: (id: string) => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
+  onExport: (id: string) => void;
 }
 
 export function StoryCard({
@@ -39,6 +49,7 @@ export function StoryCard({
   onToggleArchive,
   onDelete,
   onRename,
+  onExport,
 }: StoryCardProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -130,6 +141,15 @@ export function StoryCard({
                 >
                   <Archive className="mr-2 h-4 w-4" />
                   {story.is_archived ? 'Unarchive' : 'Archive'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onExport(story.id);
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

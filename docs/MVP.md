@@ -2,11 +2,11 @@
 
 **Version:** 1.0
 **Date:** January 14, 2026 (updated August 4, 2026)
-**Status:** ✅ **MVP COMPLETE** — app version `0.11.0`, deployed, security-audited. v1.1 underway. See `LOG.md` and `SECURITY.md`.
+**Status:** ✅ **MVP COMPLETE** · ✅ **v1.1 COMPLETE** — app version `0.12.0`, deployed, security-audited. See `LOG.md` and `SECURITY.md`.
 
 ---
 
-## v1.1 progress (post-MVP)
+## v1.1 progress (post-MVP) — ✅ complete
 
 Per the roadmap ordering (conditional notes → technical notes → multi-board → containers → export/import):
 
@@ -16,7 +16,7 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 | Technical Notes | ✅ Shipped (v0.8.0) |
 | Multi-board per story | ✅ Shipped (v0.9.0) |
 | Containers | ✅ Shipped (v0.10.0) |
-| Export/Import | Not started |
+| Export/Import | ✅ Shipped (v0.12.0) |
 
 ### Conditional Notes — implementation notes
 
@@ -55,6 +55,17 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 - No migration needed — the `containers` table and `notes.container_id` already existed in the schema.
 - Deliberately out of scope for this pass: the floating **Container Panel** (PRD 4.7.3), container references (`#board/container`), collapse/expand, and the mini-board (`mini_board_data`) feature. Containers are also board-scoped here; the schema's story-level containers (`board_id IS NULL`) are unused.
 
+### Export/Import — implementation notes
+
+- A story exports to a **single self-contained JSON document** (`.ideaboard.json`) holding the story, its components, and every board with that board's notes, connections and containers.
+- **Deviation from the PRD (4.9.3):** the docs describe a `.zip` with separate `manifest.json` / `story.json` / `components.json` / `boards/*.json` entries. We use one JSON file with those same sections as top-level keys — identical data, still human-readable, and it avoids pulling a zip library into the browser bundle. The `.ibs` binary format (4.9.2) and bulk export/import are not implemented.
+- **Import always creates a new story** with fresh ids (PRD "Import as New", P0). Nothing is overwritten or merged, so an export can be restored alongside the original.
+- Ids that are only meaningful *within* the document are deliberately preserved: a conditional note's branch ids (referenced both by `connections.branch_id` and `condition_data.branches[].id`) and a technical note's update ids. Remapping them would mean rewriting two structures in lockstep for no benefit, since they never collide across stories.
+- Component references in note content are by **name**, so they survive the round trip untouched.
+- Inserts run parents-first (story → components → boards → containers → notes → connections). If any step fails the new story is deleted, which cascades the partial import away rather than leaving a broken story behind.
+- Validation rejects non-JSON, unrelated JSON, exports with no boards, malformed boards, and — with an actionable message — files written by a *newer* format version.
+- The import dialog previews counts (boards/notes/connections/containers/components) before anything is created, and warns on a duplicate title.
+
 ---
 
 ## 1. MVP Scope
@@ -89,8 +100,8 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | Technical Notes | ✅ Shipped in v0.8.0 (see LOG.md) |
 | Containers | ✅ Shipped in v0.10.0 (see LOG.md) |
 | Multi-board per story | ✅ Shipped in v0.9.0 (see LOG.md) |
-| Export/Import (.ibs full) | v1.1 |
-| Export/Import (.zip light) | v1.1 |
+| Export/Import (.ibs full) | Not implemented — see v0.12.0 notes |
+| Export/Import (portable) | ✅ Shipped in v0.12.0 as a single JSON file |
 | Real-time collaboration | v1.2 |
 | Sharing & permissions | v1.2 |
 | Version history | v1.2 |

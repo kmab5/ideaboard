@@ -345,6 +345,43 @@ const sections = [
     ),
   },
   {
+    id: 'export-import',
+    heading: 'Export & import',
+    body: (
+      <>
+        <p>
+          You can export any story to a single file and import it back later — useful for backups,
+          moving work between accounts, or duplicating a story as a starting point.
+        </p>
+        <ul>
+          <li>
+            <strong>Export:</strong> open a story&apos;s menu on the dashboard and choose{' '}
+            <strong>Export</strong>. You&apos;ll get a{' '}
+            <span className="font-mono">.ideaboard.json</span> file containing the story, all its
+            boards, notes, connections, containers, and components.
+          </li>
+          <li>
+            <strong>Import:</strong> use the <strong>Import</strong> button on the dashboard. Pick a
+            file and you&apos;ll see a summary of what it contains before anything is created.
+          </li>
+          <li>
+            <strong>Importing always creates a new story</strong> with fresh IDs — nothing you
+            already have is overwritten or merged into. You can rename the story during import, and
+            you&apos;ll be warned if the title matches one you already have.
+          </li>
+          <li>
+            Conditional branches, technical updates, and container groupings all survive the round
+            trip, as do component references in your notes.
+          </li>
+        </ul>
+        <Tip>
+          The export is plain JSON, so it&apos;s readable and diffable — you can keep it in version
+          control alongside your drafts if you like.
+        </Tip>
+      </>
+    ),
+  },
+  {
     id: 'undo-redo',
     heading: 'Undo & redo',
     body: (
