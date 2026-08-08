@@ -72,6 +72,41 @@ const sections = [
     ),
   },
   {
+    id: 'boards',
+    heading: 'Boards',
+    body: (
+      <>
+        <p>
+          A story can hold as many boards as you need — useful for splitting a big project into
+          separate canvases like &ldquo;Act 1&rdquo;, &ldquo;Side Quests&rdquo;, and
+          &ldquo;Characters&rdquo;. Boards appear as tabs just under the story header.
+        </p>
+        <ul>
+          <li>
+            <strong>Switch</strong> boards by clicking a tab. The open board is remembered in the
+            page URL, so you can bookmark or share a link straight to it.
+          </li>
+          <li>
+            <strong>Create</strong> a board with the <span className="font-mono">+</span> button at
+            the end of the tab strip.
+          </li>
+          <li>
+            <strong>Rename</strong> by double-clicking a tab, or from its menu.{' '}
+            <strong>Duplicate</strong> copies the board with all its notes and connections intact.
+          </li>
+          <li>
+            <strong>Delete</strong> removes the board and everything on it. A story always keeps at
+            least one board, so the last one can&apos;t be deleted.
+          </li>
+        </ul>
+        <Tip>
+          Components are shared across every board in a story — define{' '}
+          <span className="font-mono">gold</span> once and reference it from any board.
+        </Tip>
+      </>
+    ),
+  },
+  {
     id: 'notes',
     heading: 'Notes',
     body: (

@@ -6,19 +6,21 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.8.0`** · Status: **MVP complete; v1.1 underway.** Conditional and Technical Notes shipped.
+**Current version: `0.9.0`** · Status: **MVP complete; v1.1 underway.** Conditional Notes, Technical Notes, and Multi-Board shipped.
 
 ---
 
-## Latest updates — v0.8.0
+## Latest updates — v0.9.0
 
-- **Technical Notes shipped** — the write-side counterpart to Conditional Notes. Define one or more component updates (`set`, `add`, `subtract`, `multiply`, `toggle`, `append`); the note previews each change live (`current → new`).
-- **Apply** is a deliberate, explicit action: click it to actually write the computed values to your components — a testing aid for walking through a path, not something that fires automatically.
-- New keyboard shortcut: `Alt+N` (`Option+N` on Mac) adds a technical note.
+- **Multi-board per story shipped.** A story can now hold as many boards as you need, switchable from a tab strip under the header — split a project into "Act 1", "Side Quests", "Characters", and so on.
+- Create, rename (double-click a tab), **duplicate** (copies every note and connection), and delete boards. A story always keeps at least one board.
+- The open board lives in the URL (`?b=<boardId>`), so boards are linkable and survive a refresh.
+- Components stay story-level, so they're shared across every board — define `gold` once, use it anywhere.
 
 ## Upcoming / planned
 
-- **Multi-board per story** (next in the v1.1 order), then **Containers**, then **Export/Import**.
+- **Containers** (next in the v1.1 order), then **Export/Import**.
+- **Board linking** (`#boardname`) and cross-board navigation — PRD P0 features that build on multi-board; deferred to their own pass along with board folders, search, and the board-overview dashboard.
 - **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src`.
 - **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes — tracked as future work.
 - **Components, next steps** — an optional *selected value* for list components, and a note "show values" toggle previewing `{{fuel}}` as its current value.
@@ -28,6 +30,25 @@ the files that were added or modified.
 ---
 
 ## Changelog
+
+### [0.9.0] — 2026-08-06
+
+**Multi-board per story (third v1.1 feature)**
+- A story now loads all of its boards instead of only the first. The open board is tracked in the URL as `?b=<boardId>`, making boards linkable and refresh-safe; an unknown or missing id falls back to the story's first board.
+- New `BoardTabs` tab strip: switch, create, rename (double-click or menu), duplicate, and delete boards.
+- **Duplicate** clones a board with all of its notes and connections, remapping every id and rewiring connections to the cloned notes. Connections with a missing endpoint are dropped rather than left dangling. Extracted to `src/lib/boards.ts` and unit-tested (9 tests) since it's the most error-prone part of the feature.
+- Switching boards swaps canvas data in place rather than reloading the page; `<Canvas>` is keyed on board id so React Flow rebuilds cleanly instead of reconciling two unrelated node sets. A spinner overlays the canvas during the swap.
+- Deleting the last board is blocked in both the UI and the handler, so a story can never end up with zero boards. Board deletion cascades to its notes and connections but leaves the story's components untouched.
+- Boards state is held in the board page rather than a Zustand store, since only the page and tab bar read it (components differ — deeply nested nodes consume those).
+- No migration needed: the `boards` table already supported multiple rows per story.
+
+**Docs**
+- Guide updated with a new "Boards" section.
+- `MVP.md`: v1.1 progress table updated, multi-board implementation notes added, and the now-obsolete "One board per story" MVP row annotated.
+
+**Files changed**
+- Added: `src/components/board/board-tabs.tsx`, `src/lib/boards.ts`, `src/lib/boards.test.ts`
+- Modified: `src/app/(board)/board/[id]/page.tsx`, `src/components/board/index.ts`, `src/app/guide/page.tsx`, `docs/MVP.md`, `src/lib/version.ts`, `package.json`
 
 ### [0.8.0] — 2026-08-06
 

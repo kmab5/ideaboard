@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** January 14, 2026 (updated August 4, 2026)
-**Status:** ✅ **MVP COMPLETE** — app version `0.8.0`, deployed, security-audited. v1.1 underway. See `LOG.md` and `SECURITY.md`.
+**Status:** ✅ **MVP COMPLETE** — app version `0.9.0`, deployed, security-audited. v1.1 underway. See `LOG.md` and `SECURITY.md`.
 
 ---
 
@@ -14,7 +14,7 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 | --------- | -------- |
 | Conditional Notes | ✅ Shipped (v0.7.0) |
 | Technical Notes | ✅ Shipped (v0.8.0) |
-| Multi-board per story | Not started |
+| Multi-board per story | ✅ Shipped (v0.9.0) |
 | Containers | Not started |
 | Export/Import | Not started |
 
@@ -34,6 +34,16 @@ Per the roadmap ordering (conditional notes → technical notes → multi-board 
 - **Apply** is a deliberate, explicit action (not automatic/live like conditional-note evaluation): clicking it writes the computed values to the actual components, the same write path as editing a value in the Components panel. This is a testing aid for walking a path manually, not a runtime engine — nothing applies itself.
 - Deliberately out of scope for this pass: undo support specifically for "Apply" (a component's prior value can be restored via the Components panel's Reset-to-default or a manual edit, but there's no one-click "undo this apply").
 
+### Multi-Board — implementation notes
+
+- A story now loads *all* its boards; the open board is tracked in the URL as `?b=<boardId>` so a board is linkable and survives a refresh. An unknown or missing id falls back to the story's first board.
+- Switching boards swaps notes/connections in place rather than reloading the page — the story and components already in memory are reused. `<Canvas>` is keyed on board id so React Flow rebuilds cleanly instead of reconciling two unrelated node sets.
+- Boards state lives in the board page (not a Zustand store) because only the page and the tab bar read it — unlike components, which deeply nested nodes consume.
+- **Duplicate** copies a board with its notes and connections, remapping every id and rewiring connections to the cloned notes; connections with a missing endpoint are dropped rather than left dangling. This logic is extracted to `src/lib/boards.ts` and unit-tested.
+- A story always keeps at least one board — deleting the last one is blocked in both the UI and the handler.
+- Components remain story-level and are therefore shared across every board, as the PRD specifies.
+- Deliberately out of scope for this pass (all separate PRD features): board linking via `#boardname`, cross-board navigation, board folders, board search, and the board-overview dashboard with thumbnails.
+
 ---
 
 ## 1. MVP Scope
@@ -47,7 +57,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | User Authentication | P0 | Email/password signup & login, Google OAuth |
 | User Profile | P0 | Display name, DiceBear avatar |
 | Story Management | P0 | Create, rename, delete stories |
-| Single Board | P0 | One board per story (multi-board in v1.1) |
+| Single Board | P0 | One board per story — superseded by multi-board in v0.9.0 |
 | Normal Notes | P0 | Create, edit, move, resize, delete notes (Markdown) |
 | Markdown Rendering | P0 | Bold, italic, lists, headings, task lists, links, tables |
 | Drawing Mode | P0 | Freehand drawing as connectable node |
@@ -67,7 +77,7 @@ The MVP focuses on delivering the essential whiteboard experience with basic use
 | Conditional Notes | ✅ Shipped in v0.7.0 (see LOG.md) |
 | Technical Notes | ✅ Shipped in v0.8.0 (see LOG.md) |
 | Containers | v1.1 |
-| Multi-board per story | v1.1 |
+| Multi-board per story | ✅ Shipped in v0.9.0 (see LOG.md) |
 | Export/Import (.ibs full) | v1.1 |
 | Export/Import (.zip light) | v1.1 |
 | Real-time collaboration | v1.2 |

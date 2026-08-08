@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Settings, Loader2 } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 import { createClient } from '@/lib/supabase/client';
 import { useStoryStore, useComponentStore } from '@/lib/store';
 import { extractReferenceNames } from '@/lib/references';
+import { cloneBoardContents, resolveActiveBoard } from '@/lib/boards';
 import type { Board, Note, Connection } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { Canvas } from '@/components/board';
+import { Canvas, BoardTabs } from '@/components/board';
 import { ComponentPanel } from '@/components/panels';
 import { ThemeToggle } from '@/components/common';
 import { toast } from 'sonner';
@@ -17,16 +19,24 @@ import { toast } from 'sonner';
 export default function BoardPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const storyId = params.id as string;
+  // Which board of the story is open. Kept in the URL (?b=) so a board is
+  // linkable and survives refresh; falls back to the story's first board.
+  const boardIdParam = searchParams.get('b');
   const supabase = createClient();
 
   const { currentStory, setCurrentStory } = useStoryStore();
   const { components, setComponents, isPanelOpen, togglePanel } = useComponentStore();
 
+  // Boards state is held here rather than in a store: only this page and the
+  // tab bar need it, unlike components which are read by deeply nested nodes.
+  const [boards, setBoards] = useState<Board[]>([]);
   const [board, setBoard] = useState<Board | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSwitchingBoard, setIsSwitchingBoard] = useState(false);
   // Note the panel asks the canvas to focus (pan/select). Null clears it.
   const [focusNoteId, setFocusNoteId] = useState<string | null>(null);
 
@@ -95,14 +105,13 @@ export default function BoardPage() {
 
         setCurrentStory(story);
 
-        // Board and components both derive from the story id, so fetch together.
+        // Boards and components both derive from the story id, so fetch together.
         const [boardsResult, componentsResult] = await Promise.all([
           supabase
             .from('boards')
             .select('*')
             .eq('story_id', storyId)
-            .order('sort_order', { ascending: true })
-            .limit(1),
+            .order('sort_order', { ascending: true }),
           supabase
             .from('components')
             .select('*')
@@ -115,9 +124,13 @@ export default function BoardPage() {
 
         setComponents(componentsResult.data || []);
 
-        const boards = boardsResult.data;
-        if (boards && boards.length > 0) {
-          const currentBoard = boards[0];
+        const allBoards = boardsResult.data || [];
+        setBoards(allBoards);
+
+        if (allBoards.length > 0) {
+          // Honour ?b= when it names a board in this story; otherwise fall back
+          // to the first board (also covers a stale/other-story board id).
+          const currentBoard = resolveActiveBoard(allBoards, boardIdParam)!;
           setBoard(currentBoard);
 
           // Notes and connections both derive from the board id — fetch together.
@@ -144,7 +157,177 @@ export default function BoardPage() {
     if (storyId) {
       fetchData();
     }
+    // boardIdParam is deliberately excluded: switching boards is handled by
+    // handleSelectBoard (which swaps data in place), not by refetching
+    // everything from scratch on every URL change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyId, supabase, router, setCurrentStory, setComponents]);
+
+  // ---------------------------------------------------------------------
+  // Board management (multi-board per story)
+  // ---------------------------------------------------------------------
+
+  // Switch boards by swapping the canvas data in place rather than reloading
+  // the page, so the story/components already in memory are reused.
+  const handleSelectBoard = useCallback(
+    async (boardId: string) => {
+      if (boardId === board?.id) return;
+      const target = boards.find((b) => b.id === boardId);
+      if (!target) return;
+
+      setIsSwitchingBoard(true);
+      try {
+        const [notesResult, connectionsResult] = await Promise.all([
+          supabase.from('notes').select('*').eq('board_id', boardId),
+          supabase.from('connections').select('*').eq('board_id', boardId),
+        ]);
+        if (notesResult.error) throw notesResult.error;
+        if (connectionsResult.error) throw connectionsResult.error;
+
+        setBoard(target);
+        setNotes(notesResult.data || []);
+        setConnections(connectionsResult.data || []);
+        // Keep the URL in sync so the open board is linkable and survives reload.
+        router.replace(`/board/${storyId}?b=${boardId}`, { scroll: false });
+      } catch (error) {
+        console.error('Error switching board:', error);
+        toast.error('Failed to open board');
+      } finally {
+        setIsSwitchingBoard(false);
+      }
+    },
+    [board?.id, boards, supabase, router, storyId]
+  );
+
+  const handleCreateBoard = useCallback(
+    async (title: string) => {
+      const newBoard = {
+        id: uuidv4(),
+        story_id: storyId,
+        title,
+        sort_order: boards.length,
+      };
+
+      try {
+        const { data, error } = await supabase.from('boards').insert(newBoard).select().single();
+        if (error) throw error;
+
+        setBoards((prev) => [...prev, data]);
+        // A new board starts empty, so swap directly without another fetch.
+        setBoard(data);
+        setNotes([]);
+        setConnections([]);
+        router.replace(`/board/${storyId}?b=${data.id}`, { scroll: false });
+        toast.success(`Created "${title}"`);
+      } catch (error) {
+        console.error('Error creating board:', error);
+        toast.error('Failed to create board');
+      }
+    },
+    [storyId, boards.length, supabase, router]
+  );
+
+  const handleRenameBoard = useCallback(
+    async (boardId: string, title: string) => {
+      const previous = boards.find((b) => b.id === boardId);
+      setBoards((prev) => prev.map((b) => (b.id === boardId ? { ...b, title } : b)));
+      setBoard((prev) => (prev?.id === boardId ? { ...prev, title } : prev));
+
+      try {
+        const { error } = await supabase.from('boards').update({ title }).eq('id', boardId);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error renaming board:', error);
+        toast.error('Failed to rename board');
+        if (previous) {
+          setBoards((prev) => prev.map((b) => (b.id === boardId ? previous : b)));
+          setBoard((prev) => (prev?.id === boardId ? previous : prev));
+        }
+      }
+    },
+    [boards, supabase]
+  );
+
+  const handleDeleteBoard = useCallback(
+    async (boardId: string) => {
+      // Guarded in the UI too, but never let a story end up with zero boards.
+      if (boards.length <= 1) return;
+
+      const remaining = boards.filter((b) => b.id !== boardId);
+      const previousBoards = boards;
+      setBoards(remaining);
+
+      try {
+        // Notes and connections cascade from the board row.
+        const { error } = await supabase.from('boards').delete().eq('id', boardId);
+        if (error) throw error;
+
+        toast.success('Board deleted');
+        if (board?.id === boardId) {
+          await handleSelectBoard(remaining[0].id);
+        }
+      } catch (error) {
+        console.error('Error deleting board:', error);
+        toast.error('Failed to delete board');
+        setBoards(previousBoards);
+      }
+    },
+    [boards, board?.id, supabase, handleSelectBoard]
+  );
+
+  // Copy a board along with its notes and connections. Ids are remapped so the
+  // copies are independent, and connections are rewired to the new note ids.
+  const handleDuplicateBoard = useCallback(
+    async (boardId: string) => {
+      const source = boards.find((b) => b.id === boardId);
+      if (!source) return;
+
+      try {
+        const { data: newBoard, error: boardError } = await supabase
+          .from('boards')
+          .insert({
+            id: uuidv4(),
+            story_id: storyId,
+            title: `${source.title} (copy)`,
+            sort_order: boards.length,
+          })
+          .select()
+          .single();
+        if (boardError) throw boardError;
+
+        const [sourceNotes, sourceConnections] = await Promise.all([
+          supabase.from('notes').select('*').eq('board_id', boardId),
+          supabase.from('connections').select('*').eq('board_id', boardId),
+        ]);
+        if (sourceNotes.error) throw sourceNotes.error;
+        if (sourceConnections.error) throw sourceConnections.error;
+
+        const { notes: clonedNotes, connections: clonedConnections } = cloneBoardContents(
+          sourceNotes.data || [],
+          sourceConnections.data || [],
+          newBoard.id,
+          uuidv4
+        );
+
+        if (clonedNotes.length > 0) {
+          const { error } = await supabase.from('notes').insert(clonedNotes);
+          if (error) throw error;
+        }
+
+        if (clonedConnections.length > 0) {
+          const { error } = await supabase.from('connections').insert(clonedConnections);
+          if (error) throw error;
+        }
+
+        setBoards((prev) => [...prev, newBoard]);
+        toast.success(`Duplicated "${source.title}"`);
+      } catch (error) {
+        console.error('Error duplicating board:', error);
+        toast.error('Failed to duplicate board');
+      }
+    },
+    [boards, storyId, supabase]
+  );
 
   // Best-effort sync of the component_references table when a note's content
   // changes. Non-blocking: failures are logged but never surfaced or rolled back.
@@ -400,7 +583,9 @@ export default function BoardPage() {
           </Button>
           <div>
             <h1 className="font-semibold">{currentStory?.title || 'Untitled'}</h1>
-            <p className="text-xs text-muted-foreground">{board.title}</p>
+            <p className="text-xs text-muted-foreground">
+              {boards.length > 1 ? `${boards.length} boards` : board.title}
+            </p>
           </div>
         </div>
 
@@ -413,9 +598,28 @@ export default function BoardPage() {
         </div>
       </header>
 
+      {/* Board tabs */}
+      <BoardTabs
+        boards={boards}
+        activeBoardId={board.id}
+        onSelect={handleSelectBoard}
+        onCreate={handleCreateBoard}
+        onRename={handleRenameBoard}
+        onDelete={handleDeleteBoard}
+        onDuplicate={handleDuplicateBoard}
+      />
+
       {/* Canvas */}
       <div className="relative flex-1">
+        {isSwitchingBoard && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
         <Canvas
+          // Remount on board change so React Flow rebuilds its internal state
+          // rather than trying to reconcile two unrelated node sets.
+          key={board.id}
           board={board}
           notes={notes}
           connections={connections}
