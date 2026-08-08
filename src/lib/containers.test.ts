@@ -6,6 +6,7 @@ import {
   notesInContainer,
   membershipChanges,
   boundsAroundNotes,
+  uniqueContainerName,
 } from './containers';
 
 const container = (id: string, x: number, y: number, width: number, height: number, z = 0) => ({
@@ -133,5 +134,23 @@ describe('boundsAroundNotes', () => {
 
   it('returns null for an empty selection', () => {
     expect(boundsAroundNotes([])).toBeNull();
+  });
+});
+
+describe('uniqueContainerName', () => {
+  it('returns the base name when it is free', () => {
+    expect(uniqueContainerName('Act 1', [])).toBe('Act 1');
+  });
+
+  it('suffixes when the name is taken', () => {
+    expect(uniqueContainerName('Act 1', ['Act 1'])).toBe('Act 1 2');
+  });
+
+  it('keeps incrementing past existing suffixes', () => {
+    expect(uniqueContainerName('Act 1', ['Act 1', 'Act 1 2', 'Act 1 3'])).toBe('Act 1 4');
+  });
+
+  it('is case-insensitive, matching a case-insensitive uniqueness expectation', () => {
+    expect(uniqueContainerName('act 1', ['ACT 1'])).toBe('act 1 2');
   });
 });

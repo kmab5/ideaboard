@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useStoryStore, useComponentStore } from '@/lib/store';
 import { extractReferenceNames } from '@/lib/references';
 import { cloneBoardContents, resolveActiveBoard } from '@/lib/boards';
+import { uniqueContainerName, notesInContainer } from '@/lib/containers';
 import type { Board, Note, Connection, Container } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Canvas, BoardTabs } from '@/components/board';
@@ -303,19 +304,47 @@ export default function BoardPage() {
           .single();
         if (boardError) throw boardError;
 
-        const [sourceNotes, sourceConnections] = await Promise.all([
+        const [sourceNotes, sourceConnections, sourceContainers] = await Promise.all([
           supabase.from('notes').select('*').eq('board_id', boardId),
           supabase.from('connections').select('*').eq('board_id', boardId),
+          supabase.from('containers').select('*').eq('board_id', boardId),
         ]);
         if (sourceNotes.error) throw sourceNotes.error;
         if (sourceConnections.error) throw sourceConnections.error;
+        if (sourceContainers.error) throw sourceContainers.error;
 
-        const { notes: clonedNotes, connections: clonedConnections } = cloneBoardContents(
+        const {
+          notes: clonedNotes,
+          connections: clonedConnections,
+          containers: clonedContainers,
+        } = cloneBoardContents(
           sourceNotes.data || [],
           sourceConnections.data || [],
           newBoard.id,
-          uuidv4
+          uuidv4,
+          sourceContainers.data || []
         );
+
+        // Container names are UNIQUE per story, so cloned containers need
+        // fresh names — fetch every name in the story, not just this board's.
+        if (clonedContainers.length > 0) {
+          const { data: storyContainers } = await supabase
+            .from('containers')
+            .select('name')
+            .eq('story_id', storyId);
+
+          const takenNames = new Set<string>((storyContainers || []).map((c) => c.name));
+          const renamed = clonedContainers.map((container) => {
+            const name = uniqueContainerName(container.name, takenNames);
+            takenNames.add(name);
+            return { ...container, name };
+          });
+
+          // Containers must exist before notes, since notes.container_id
+          // references them.
+          const { error } = await supabase.from('containers').insert(renamed);
+          if (error) throw error;
+        }
 
         if (clonedNotes.length > 0) {
           const { error } = await supabase.from('notes').insert(clonedNotes);
@@ -343,8 +372,23 @@ export default function BoardPage() {
 
   const handleCreateContainer = useCallback(
     async (container: Partial<Container>) => {
+      // Container names are UNIQUE per story at the database level, so a name
+      // that's free on this board may still collide with one on another board.
+      let name = container.name ?? 'Container';
+      try {
+        const { data: storyContainers } = await supabase
+          .from('containers')
+          .select('name')
+          .eq('story_id', storyId);
+        name = uniqueContainerName(name, (storyContainers || []).map((c) => c.name));
+      } catch (error) {
+        // Non-fatal: fall back to the proposed name and let the insert decide.
+        console.error('Could not check container names:', error);
+      }
+
       const newContainer = {
         ...container,
+        name,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       } as Container;
@@ -360,7 +404,7 @@ export default function BoardPage() {
         setContainers((prev) => prev.filter((c) => c.id !== container.id));
       }
     },
-    [supabase]
+    [supabase, storyId]
   );
 
   const handleUpdateContainer = useCallback(
@@ -391,21 +435,55 @@ export default function BoardPage() {
   const handleDeleteContainer = useCallback(
     async (id: string, keepContents: boolean) => {
       const previousContainers = containers;
-      const contained = notes.filter((n) => n.container_id === id);
+      const target = containers.find((c) => c.id === id);
+      if (!target) return;
+
+      // Membership is geometric (see lib/containers.ts). `container_id` is only
+      // persisted when a note is dragged, so a note created inside a container
+      // — or enclosed when the container was drawn around it — can still have a
+      // null container_id. Deleting by container_id would silently miss those,
+      // so resolve contents from geometry instead.
+      const contained = notesInContainer(
+        {
+          id: target.id,
+          x: target.position_x,
+          y: target.position_y,
+          width: target.width,
+          height: target.height,
+          z_index: target.z_index,
+        },
+        notes.map((n) => ({
+          id: n.id,
+          position_x: n.position_x,
+          position_y: n.position_y,
+          width: n.width,
+          height: n.height,
+        })),
+        containers.map((c) => ({
+          id: c.id,
+          x: c.position_x,
+          y: c.position_y,
+          width: c.width,
+          height: c.height,
+          z_index: c.z_index,
+        }))
+      );
+      const containedIds = new Set(contained.map((n) => n.id));
+      const containedNotes = notes.filter((n) => containedIds.has(n.id));
 
       setContainers((prev) => prev.filter((c) => c.id !== id));
       if (!keepContents) {
-        setNotes((prev) => prev.filter((n) => n.container_id !== id));
+        setNotes((prev) => prev.filter((n) => !containedIds.has(n.id)));
       }
 
       try {
-        if (!keepContents && contained.length > 0) {
+        if (!keepContents && containedNotes.length > 0) {
           const { error: notesError } = await supabase
             .from('notes')
             .delete()
             .in(
               'id',
-              contained.map((n) => n.id)
+              containedNotes.map((n) => n.id)
             );
           if (notesError) throw notesError;
         }
@@ -420,12 +498,16 @@ export default function BoardPage() {
             prev.map((n) => (n.container_id === id ? { ...n, container_id: null } : n))
           );
         }
-        toast.success(keepContents ? 'Container removed' : 'Container and notes deleted');
+        toast.success(
+          keepContents
+            ? 'Container removed'
+            : `Container and ${containedNotes.length} note${containedNotes.length === 1 ? '' : 's'} deleted`
+        );
       } catch (error) {
         console.error('Error deleting container:', error);
         toast.error('Failed to delete container');
         setContainers(previousContainers);
-        if (!keepContents) setNotes((prev) => [...prev, ...contained]);
+        if (!keepContents) setNotes((prev) => [...prev, ...containedNotes]);
       }
     },
     [containers, notes, supabase]

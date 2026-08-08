@@ -5,3 +5,4 @@ export * from './story';
 export * from './note';
 export * from './connection';
 export * from './component';
+export * from './container';

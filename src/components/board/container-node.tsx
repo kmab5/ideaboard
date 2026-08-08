@@ -48,6 +48,17 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
         minHeight={160}
         handleStyle={{ width: 8, height: 8 }}
         lineStyle={{ borderColor: color }}
+        // Authoritative size from the user's drag. Persisting here (rather than
+        // from React Flow's measurement-driven dimension changes) is what keeps
+        // containers from shrinking on their own.
+        onResizeEnd={(_event, params) =>
+          onUpdate(container.id, {
+            width: Math.round(params.width),
+            height: Math.round(params.height),
+            position_x: Math.round(params.x),
+            position_y: Math.round(params.y),
+          })
+        }
       />
 
       <div
@@ -57,6 +68,9 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
         )}
         style={{
           borderColor: color,
+          // Pin to the stored size so a re-measure can never shrink the box.
+          width: container.width,
+          height: container.height,
           // Tint is deliberately faint so notes on top stay readable.
           backgroundColor: `${color}14`,
         }}
@@ -74,6 +88,7 @@ const ContainerNode = memo(({ data, selected }: NodeProps<ContainerNodeData>) =>
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
+              maxLength={100}
               onBlur={handleNameBlur}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') (e.target as HTMLInputElement).blur();

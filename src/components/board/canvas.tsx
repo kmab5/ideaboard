@@ -831,6 +831,37 @@ function CanvasInner({
     isBranchActive,
   ]);
 
+  // Keep `notes.container_id` in step with the geometric truth. Membership is
+  // computed from positions (lib/containers.ts), but we persist it so it can be
+  // queried; without this, notes enclosed by creating/moving/resizing a
+  // container — rather than by being dragged into one — would keep a stale id.
+  useEffect(() => {
+    if (!isInitializedRef.current) return;
+
+    const changes = membershipChanges(
+      notes.map((n) => ({
+        id: n.id,
+        position_x: n.position_x,
+        position_y: n.position_y,
+        width: n.width,
+        height: n.height,
+        container_id: n.container_id,
+      })),
+      containers.map((c) => ({
+        id: c.id,
+        x: c.position_x,
+        y: c.position_y,
+        width: c.width,
+        height: c.height,
+        z_index: c.z_index,
+      }))
+    );
+
+    changes.forEach(({ noteId, containerId }) => {
+      onUpdateNote(noteId, { container_id: containerId });
+    });
+  }, [containers, notes, onUpdateNote]);
+
   // Pan to and select a note when asked (e.g. from the component panel's
   // "used in" list). focusNoteId is cleared by the parent after each request.
   useEffect(() => {
@@ -851,25 +882,14 @@ function CanvasInner({
   // Handle node changes (position updates during drag)
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      // NOTE: container sizes are deliberately NOT persisted from here.
+      // React Flow emits `dimensions` changes on measurement (not just user
+      // resizes), and measured values are rounded by the zoom factor — writing
+      // those back caused containers to shrink a little on every render.
+      // NodeResizer's onResizeEnd is the authoritative source instead.
       onNodesChange(changes);
-
-      // Persist container resizes once the drag finishes. Notes handle their
-      // own resize inside NoteNode; containers have no such internal handler.
-      changes.forEach((change) => {
-        if (
-          change.type === 'dimensions' &&
-          change.resizing === false &&
-          change.dimensions &&
-          containers.some((c) => c.id === change.id)
-        ) {
-          onUpdateContainer(change.id, {
-            width: change.dimensions.width,
-            height: change.dimensions.height,
-          });
-        }
-      });
     },
-    [onNodesChange, containers, onUpdateContainer]
+    [onNodesChange]
   );
 
   // Track drag start positions for undo

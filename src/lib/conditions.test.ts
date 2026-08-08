@@ -190,3 +190,55 @@ describe('parseConditionData', () => {
     expect(parseConditionData(data).branches).toHaveLength(1);
   });
 });
+
+describe('comparison operators across types', () => {
+  const lookup2 = makeComponentLookup([
+    { name: 'gold', current_value: 15 },
+    { name: 'rank', current_value: 'bravo' },
+    { name: 'numericString', current_value: '42' },
+    { name: 'inventory', current_value: ['sword', 'shield', 'rope'] },
+  ]);
+
+  it('offers comparisons for number, string and list, but not boolean', () => {
+    for (const type of ['number', 'string', 'list'] as const) {
+      expect(operatorsForType(type)).toEqual(expect.arrayContaining(['>', '>=', '<', '<=']));
+    }
+    expect(operatorsForType('boolean')).toEqual(['==', '!=']);
+  });
+
+  it('compares numbers numerically', () => {
+    expect(evaluateRule({ id: '1', component: 'gold', operator: '>=', value: 15 }, lookup2)).toBe(true);
+    expect(evaluateRule({ id: '1', component: 'gold', operator: '<', value: 15 }, lookup2)).toBe(false);
+  });
+
+  it('compares numeric strings numerically, not lexicographically', () => {
+    // Lexicographically '42' < '9', so this pins the numeric behaviour.
+    expect(
+      evaluateRule({ id: '1', component: 'numericString', operator: '>', value: 9 }, lookup2)
+    ).toBe(true);
+  });
+
+  it('compares plain text lexicographically', () => {
+    expect(evaluateRule({ id: '1', component: 'rank', operator: '>', value: 'alpha' }, lookup2)).toBe(
+      true
+    );
+    expect(
+      evaluateRule({ id: '1', component: 'rank', operator: '<', value: 'charlie' }, lookup2)
+    ).toBe(true);
+  });
+
+  it('compares lists by item count', () => {
+    expect(
+      evaluateRule({ id: '1', component: 'inventory', operator: '>', value: 2 }, lookup2)
+    ).toBe(true);
+    expect(
+      evaluateRule({ id: '1', component: 'inventory', operator: '>=', value: 4 }, lookup2)
+    ).toBe(false);
+  });
+
+  it('returns false when a list is compared against a non-numeric value', () => {
+    expect(
+      evaluateRule({ id: '1', component: 'inventory', operator: '>', value: 'many' }, lookup2)
+    ).toBe(false);
+  });
+});

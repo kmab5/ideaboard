@@ -126,3 +126,21 @@ export function boundsAroundNotes(notes: NoteLike[], padding = 40): Bounds | nul
     height: maxY - minY + padding * 2,
   };
 }
+
+/**
+ * Generate a container name that doesn't collide with `existingNames`.
+ *
+ * Container names are UNIQUE per story at the database level (not merely per
+ * board), so callers must consider every container in the story — including
+ * ones on other boards — or the insert will fail.
+ */
+export function uniqueContainerName(base: string, existingNames: Iterable<string>): string {
+  const taken = new Set(Array.from(existingNames, (n) => n.toLowerCase()));
+  if (!taken.has(base.toLowerCase())) return base;
+
+  let suffix = 2;
+  while (taken.has(`${base} ${suffix}`.toLowerCase())) {
+    suffix += 1;
+  }
+  return `${base} ${suffix}`;
+}

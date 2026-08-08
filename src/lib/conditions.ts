@@ -71,6 +71,15 @@ export function parseConditionData(raw: unknown): ConditionalNoteData {
 }
 
 /** Operators valid for a given component type, used to build the rule editor UI. */
+/**
+ * Operators valid for a given component type, used to build the rule editor UI.
+ *
+ * Comparisons (`>`, `>=`, `<`, `<=`) are offered for numbers, strings, and
+ * lists. Their meaning depends on the value being compared (see `compare`):
+ * numeric when both sides are numbers, list length for lists, and
+ * lexicographic for other strings. They're withheld for booleans, where
+ * ordering has no sensible meaning.
+ */
 export function operatorsForType(type: 'number' | 'string' | 'boolean' | 'list'): ConditionOperator[] {
   switch (type) {
     case 'number':
@@ -78,10 +87,11 @@ export function operatorsForType(type: 'number' | 'string' | 'boolean' | 'list')
     case 'boolean':
       return ['==', '!='];
     case 'list':
-      return ['includes', '=='];
+      // Comparisons apply to the number of items in the list.
+      return ['includes', '==', '!=', '>', '>=', '<', '<='];
     case 'string':
     default:
-      return ['==', '!=', 'includes'];
+      return ['==', '!=', 'includes', '>', '>=', '<', '<='];
   }
 }
 
@@ -97,9 +107,36 @@ function compare(actual: unknown, operator: ConditionOperator, expected: Conditi
     case '>=':
     case '<':
     case '<=': {
-      const a = Number(actual);
-      const b = Number(expected);
-      if (Number.isNaN(a) || Number.isNaN(b)) return false;
+      // Lists compare by item count ("inventory has more than 3 things").
+      // Otherwise compare numerically when both sides look numeric, falling
+      // back to lexicographic ordering for plain text.
+      let a: number | string;
+      let b: number | string;
+
+      if (Array.isArray(actual)) {
+        const count = Number(expected);
+        if (Number.isNaN(count)) return false;
+        a = actual.length;
+        b = count;
+      } else {
+        const actualNum = Number(actual);
+        const expectedNum = Number(expected);
+        const bothNumeric =
+          actual !== null &&
+          actual !== '' &&
+          String(expected).trim() !== '' &&
+          !Number.isNaN(actualNum) &&
+          !Number.isNaN(expectedNum);
+
+        if (bothNumeric) {
+          a = actualNum;
+          b = expectedNum;
+        } else {
+          a = String(actual ?? '');
+          b = String(expected);
+        }
+      }
+
       if (operator === '>') return a > b;
       if (operator === '>=') return a >= b;
       if (operator === '<') return a < b;

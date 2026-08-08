@@ -98,6 +98,7 @@ describe('cloneBoardContents', () => {
     expect(cloneBoardContents([], [], 'board-2', sequentialIds())).toEqual({
       notes: [],
       connections: [],
+      containers: [],
     });
   });
 });
@@ -119,5 +120,60 @@ describe('resolveActiveBoard', () => {
 
   it('returns null when there are no boards', () => {
     expect(resolveActiveBoard([], 'b1')).toBeNull();
+  });
+});
+
+describe('cloneBoardContents — containers', () => {
+  const makeContainer = (id: string, name: string) =>
+    ({
+      id,
+      story_id: 's1',
+      board_id: 'board-1',
+      name,
+      description: null,
+      position_x: 0,
+      position_y: 0,
+      width: 400,
+      height: 300,
+      color: '#7c3aed',
+      background_opacity: 0.1,
+      is_collapsed: false,
+      is_locked: false,
+      mini_board_data: { notes: [], connections: [], viewport: { x: 0, y: 0, zoom: 1 } },
+      z_index: 0,
+      created_at: '',
+      updated_at: '',
+    }) as unknown as import('@/types/database').Container;
+
+  it('clones containers onto the new board with fresh ids', () => {
+    const containers = [makeContainer('c1', 'Act 1')];
+    const result = cloneBoardContents([], [], 'board-2', sequentialIds(), containers);
+
+    expect(result.containers).toHaveLength(1);
+    expect(result.containers[0].id).not.toBe('c1');
+    expect(result.containers[0].board_id).toBe('board-2');
+    expect(result.containers[0].name).toBe('Act 1');
+  });
+
+  it('remaps note container_id to the cloned container', () => {
+    const containers = [makeContainer('c1', 'Act 1')];
+    const notes = [{ ...makeNote('a'), container_id: 'c1' }];
+    const result = cloneBoardContents(notes, [], 'board-2', sequentialIds(), containers);
+
+    expect(result.notes[0].container_id).toBe(result.containers[0].id);
+    // Critically, it must NOT still point at the original board's container.
+    expect(result.notes[0].container_id).not.toBe('c1');
+  });
+
+  it('detaches a note whose container was not copied', () => {
+    const notes = [{ ...makeNote('a'), container_id: 'orphan' }];
+    const result = cloneBoardContents(notes, [], 'board-2', sequentialIds(), []);
+
+    expect(result.notes[0].container_id).toBeNull();
+  });
+
+  it('defaults to no containers when the argument is omitted', () => {
+    const result = cloneBoardContents([makeNote('a')], [], 'board-2', sequentialIds());
+    expect(result.containers).toEqual([]);
   });
 });

@@ -2,7 +2,7 @@
 
 Security posture, audit findings, and reporting process for IdeaBoard.
 
-**Last full audit:** August 6, 2026 (v0.6.0)
+**Last full audit:** August 8, 2026 (v0.11.0) — previous full audit August 6, 2026 (v0.6.0)
 **Audit scope:** dependencies, authentication & session handling, authorization (RLS), storage, input validation, XSS/injection surfaces, HTTP headers, secret hygiene, and privacy/compliance obligations.
 
 ---
@@ -96,6 +96,24 @@ All findings below were discovered during the v0.6.0 audit and are **fixed** unl
 
 **Result: 0 vulnerabilities** in both the production and full dependency trees.
 
+### IDB-008 — Container `board_id` not constrained to its story · **Low** · Fixed
+
+**What:** `containers` carries both `story_id` and `board_id`, and RLS authorizes on `user_owns_story(story_id)` — but nothing enforced that the referenced board actually belongs to that story. A crafted insert could pass authorization while pointing `board_id` at a board in another user's story. The same gap existed for `notes.container_id`, which could reference a container on a different board.
+
+**Impact:** Low, and **not** a disclosure issue — the row stays invisible to the other user, since their reads are filtered by their own story ownership. This is data integrity rather than access control.
+
+**Fix:** Migration `003_container_integrity.sql` adds `BEFORE INSERT OR UPDATE` triggers enforcing that a container's board belongs to its story, and that a note's container is on the same board.
+
+> **Action required:** run the migration. Existing rows aren't rewritten; the triggers apply from the next write onward.
+
+### IDB-009 — Missing input length limits on new fields · **Informational** · Fixed
+
+**What:** Container names (`VARCHAR(100)`) and board titles (`VARCHAR(255)`) had no client-side length cap, so over-long input produced a raw database error rather than being prevented.
+
+**Impact:** Informational — the database rejected the write correctly; this was a UX and error-surface issue, not a bypass.
+
+**Fix:** `maxLength` on both inputs, plus a new `src/lib/validations/container.ts` Zod schema mirroring the database constraints (name length, hex colour format, opacity range), bringing containers in line with every other entity.
+
 ---
 
 ## Verified secure (no action needed)
@@ -134,7 +152,7 @@ Honest disclosure of what is *not* yet addressed:
 
 Before and after each deploy:
 
-- [ ] Run `docs/database/migrations/001_security_hardening.sql` against the production database.
+- [ ] Run every migration in `docs/database/migrations/` against the production database (`001_security_hardening.sql`, `002_conditional_notes.sql`, `003_container_integrity.sql`).
 - [ ] Confirm `SUPABASE_SERVICE_ROLE_KEY` is set in Vercel and is **not** prefixed `NEXT_PUBLIC_`.
 - [ ] Confirm `NEXT_PUBLIC_APP_URL` includes the scheme (`https://…`).
 - [ ] Confirm `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are set (optional — the app runs without them, but rate limiting is disabled until they're set).

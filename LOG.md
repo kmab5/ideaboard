@@ -6,21 +6,23 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.10.0`** · Status: **MVP complete; v1.1 nearly done.** Only Export/Import remains.
+**Current version: `0.11.0`** · Status: **MVP complete; v1.1 nearly done.** Only Export/Import remains.
 
 ---
 
-## Latest updates — v0.10.0
+## Latest updates — v0.11.0
 
-- **Containers shipped.** Name a region of the canvas to group the notes inside it — an act, a chapter, a cluster of related scenes. Add one from the toolbar or with `C`.
-- **Membership is automatic:** a note belongs to whichever container its centre sits in. Drag notes in or out and the grouping updates itself, with a live note count in the header.
-- Dragging a container's header moves everything inside it. Create with notes selected and the container is drawn around them.
-- Deleting asks what you want: keep the notes on the canvas, or delete them along with the container.
+- **Fixed: containers shrinking on their own.** Sizes are now persisted only from the actual resize action and pinned to the stored value, so a container keeps exactly the size you gave it.
+- **Comparison operators (`>`, `<`, `>=`, `<=`) added for string and list components**, not just numbers. Numbers compare numerically, lists by item count, and text lexicographically.
+- **Debug sweep fixed three real bugs**, including one that could silently lose notes: "delete container with contents" read a stale membership field instead of actual geometry, so it could miss notes that were visibly inside.
+- **Security audit re-run:** 0 dependency vulnerabilities; two new low/informational findings fixed (see `SECURITY.md`).
+
+> ⚠️ **Action required after deploying:** run `docs/database/migrations/003_container_integrity.sql` in Supabase.
 
 ## Upcoming / planned
 
 - **Export/Import** — the last v1.1 feature.
-- **Container Panel** (PRD 4.7.3), container references (`#board/container`), and collapse/expand — deferred from this pass.
+- **Container Panel** (PRD 4.7.3), container references (`#board/container`), and collapse/expand.
 - **Board linking** (`#boardname`) and cross-board navigation, plus board folders/search/overview.
 - **Nonce-based CSP** to remove `'unsafe-inline'`/`'unsafe-eval'` from `script-src`.
 - **Closing the write-path rate-limit gap** would require proxying board mutations through Next.js API routes.
@@ -31,6 +33,27 @@ the files that were added or modified.
 ---
 
 ## Changelog
+
+### [0.11.0] — 2026-08-08
+
+**Fixes**
+- **Containers no longer shrink on their own.** Size was being persisted from React Flow's `dimensions` changes, which fire on *measurement* as well as user resizes — and measured values are rounded by the zoom factor, so every render wrote back a slightly smaller box, compounding over time. Size now comes solely from `NodeResizer`'s `onResizeEnd`, and the container's DOM box is pinned to the stored dimensions so a re-measure can't override it.
+- **Comparison operators widened.** `>`, `<`, `>=`, `<=` were only offered for `number` components. They're now available for strings and lists too, with defined semantics: numeric when both sides are numeric, item count for lists, lexicographic for other text. Booleans keep `==`/`!=` only, where ordering is meaningless. 6 new tests pin the behaviour.
+
+**Debug sweep — three real bugs found and fixed**
+- **Data-loss risk:** "delete container with contents" resolved contents from `notes.container_id`, but membership is *geometric* and that field is only written when a note is dragged. Notes created inside a container, or enclosed when one was drawn around them, had a null `container_id` — so they'd be silently left behind. Contents are now resolved from geometry, and a new effect keeps `container_id` in step whenever containers are created, moved, or resized.
+- **Board duplication ignored containers**, and cloned notes kept `container_id` values pointing at the *original* board's containers — cross-board dangling references. `cloneBoardContents` now clones containers and remaps note membership to the copies (detaching cleanly if a container wasn't copied). 4 new tests.
+- **Container names collide story-wide.** The schema enforces `UNIQUE (story_id, name)`, but creation only checked the current board and duplication cloned names verbatim — both would fail at insert once a second board had containers. Added a tested `uniqueContainerName` helper, applied to both paths against story-wide names.
+
+**Security audit (see `SECURITY.md`)**
+- Dependencies: **0 known vulnerabilities** (production and full tree).
+- **IDB-008 (Low):** a container's `board_id` wasn't constrained to belong to its `story_id` (same for `notes.container_id` vs its board). Not a disclosure issue — rows stay invisible to other users — but a real integrity gap. Fixed by triggers in migration `003_container_integrity.sql`.
+- **IDB-009 (Informational):** container names and board titles had no client-side length cap, surfacing raw database errors. Added `maxLength` and a `container.ts` Zod schema mirroring the DB constraints.
+- Re-verified: RLS on containers uses `user_owns_story` with both USING and WITH CHECK; no `dangerouslySetInnerHTML`/`eval`; no hardcoded secrets; all six security headers present; `X-Powered-By` absent; unauthenticated account deletion → 401; cross-origin → 403.
+
+**Files changed**
+- Added: `docs/database/migrations/003_container_integrity.sql`, `src/lib/validations/container.ts`
+- Modified: `src/components/board/container-node.tsx`, `src/components/board/canvas.tsx`, `src/components/board/board-tabs.tsx`, `src/app/(board)/board/[id]/page.tsx`, `src/lib/conditions.ts`, `src/lib/conditions.test.ts`, `src/lib/containers.ts`, `src/lib/containers.test.ts`, `src/lib/boards.ts`, `src/lib/boards.test.ts`, `src/lib/validations/index.ts`, `SECURITY.md`, `docs/MVP.md`, `src/lib/version.ts`, `package.json`
 
 ### [0.10.0] — 2026-08-08
 

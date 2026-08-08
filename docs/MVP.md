@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** January 14, 2026 (updated August 4, 2026)
-**Status:** ✅ **MVP COMPLETE** — app version `0.10.0`, deployed, security-audited. v1.1 underway. See `LOG.md` and `SECURITY.md`.
+**Status:** ✅ **MVP COMPLETE** — app version `0.11.0`, deployed, security-audited. v1.1 underway. See `LOG.md` and `SECURITY.md`.
 
 ---
 

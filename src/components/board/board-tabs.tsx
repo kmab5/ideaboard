@@ -167,6 +167,7 @@ export function BoardTabs({
               value={titleValue}
               onChange={(e) => setTitleValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && submitTitle()}
+              maxLength={255}
               placeholder="e.g. Act 1, Side Quests, Characters"
             />
           </div>

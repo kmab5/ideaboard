@@ -1,6 +1,6 @@
 {
   "name": "ideaboard",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "scripts": {
