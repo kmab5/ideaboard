@@ -165,7 +165,7 @@ export function ConditionalBranchEditor({
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <GitBranch className="h-5 w-5 text-violet-500" />
+            <GitBranch className="h-5 w-5 text-brand-500" />
             Manage branches
           </DialogTitle>
           <DialogDescription>

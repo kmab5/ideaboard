@@ -80,7 +80,7 @@ export function BoardTabs({
               className={cn(
                 'group flex shrink-0 items-center gap-0.5 rounded-t-md border-b-2 px-1 transition-colors',
                 isActive
-                  ? 'border-violet-500 bg-background'
+                  ? 'border-brand-500 bg-background'
                   : 'border-transparent hover:bg-background/60'
               )}
             >

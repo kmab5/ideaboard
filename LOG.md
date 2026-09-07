@@ -6,29 +6,59 @@ bottom, newest first. The version here tracks `package.json` and
 `src/lib/version.ts`. Starting with v0.7.0, each changelog entry also lists
 the files that were added or modified.
 
-**Current version: `0.15.0`** · Status: MVP complete · v1.1 complete · PRD export suite complete.
+**Current version: `0.16.0`** · Status: MVP complete · v1.1 complete · brand identity applied.
 
 ---
 
-## Latest updates — v0.15.0
+## Latest updates — v0.16.0
 
-- **`.ibs` archive export** — a compressed full backup with an integrity checksum, alongside the existing readable `.json`. Pick a format from a story's Export menu.
-- **Back up all** — one button downloads every story as `.ibs` files inside a single ZIP; importing that ZIP restores all of them.
-- **Selected value for lists** — click a choice on a list component to make it the active one. Conditions then compare against *that* choice, so `weather == "rainy"` finally works; `includes` still checks the full set of options.
-- **Show values** — the eye icon (or `P`) swaps every `{{reference}}` for its current value, so you can proofread a note the way a reader would see it.
-
-> ⚠️ **Action required after deploying:** run `docs/database/migrations/005_list_selected_value.sql` in Supabase.
+- **New visual identity, inspired by the kmab brand kit.** Warm paper background instead of flat white, warm near-black instead of blue-black, and a mono-uppercase label system for eyebrows and markers.
+- **IdeaBoard has its own signature colour** — a deeper, bluer indigo-violet (`#6D4AFF`) rather than kmab's brighter magenta-purple, so the two read as related work without being interchangeable.
+- **New display type scale** with tight tracking, applied across the landing, guide, privacy and terms pages.
+- **Contrast fixed, not just checked** — two chip styles failed WCAG AA on light backgrounds and were corrected before shipping.
+- New `docs/DESIGN_SYSTEM.md` documents the tokens, the type scale, the measured contrast, and exactly where IdeaBoard deliberately diverges from kmab.
 
 ## Upcoming / planned
 
 - **v1.2** — sharing & permissions, then real-time collaboration, then version history.
-- **Nonce-based CSP** — built and reverted in v0.13.0; needs a decision on trading static rendering for it (see `SECURITY.md`).
-- **Not implemented from the PRD:** password-protected exports, and embedding version history in `.ibs` (that feature doesn't exist yet).
+- **Fonts** — the brand kit specifies Inter Display / Inter / PT Mono; IdeaBoard ships Geist Sans/Mono, which sit in the same territory. Swapping is a font-file drop-in.
+- **Nonce-based CSP** — built and reverted in v0.13.0; needs a decision on trading static rendering for it.
 - **Optional** — error monitoring (Sentry) — setup guidance provided.
 
 ---
 
 ## Changelog
+
+### [0.16.0] — 2026-08-08
+
+**Visual identity — inspired by the kmab brand kit, with IdeaBoard's own signature**
+
+*What was inherited (structure and discipline)*
+- Warm neutral system: paper `#F7F5EF` in light, warm near-black `#0E0E11` in dark, warm off-white `#EDEBE4` body text. No pure black, no pure white anywhere.
+- The purple/green/amber triad, as `brand` / `signal` / `highlight` Tailwind scales.
+- The mono-uppercase label device (`0.10em` tracking) for eyebrows, section markers and the version badge.
+- The display type scale: `clamp()`-based sizes with tracking that tightens as size grows.
+
+*What was deliberately changed (so this isn't a clone)*
+- **Primary hue.** kmab leads with a bright magenta-leaning purple (`#B24BFF`); IdeaBoard leads with a deeper, bluer indigo-violet (`#6D4AFF`). Clearly related side by side; not interchangeable.
+- **Casing.** Lowercase headings are one of kmab's most recognisable signatures, so adopting it wholesale would make IdeaBoard read as a kmab sub-brand. It's applied to the marketing nav only — kin, not costume.
+- **Note colours stay soft pastels.** They're user-chosen categorisation; saturated brand hues would fight the UI chrome for attention.
+- **Tighter radii** (`0.375rem` vs the shadcn default): softer corners made a dense canvas tool read as a card deck.
+
+*Contrast — measured, and two failures fixed rather than accepted*
+- Link chips: `signal-700` on a green tint measured 3.29:1, below AA for small text, so moved to `signal-800` (5.14:1).
+- Warning chips: `highlight-700` on an amber tint measured 3.0:1, moved to `highlight-800` (4.71:1).
+- Everything else clears AA or better; body text is AAA on both surfaces. Full table in `docs/DESIGN_SYSTEM.md`.
+
+*Fonts*
+- The kit specifies Inter Display / Inter / PT Mono but deliberately doesn't redistribute the binaries, so there was nothing to vendor. IdeaBoard keeps its bundled Geist Sans/Mono, which sit in the same grotesque + mono territory, and matches the *type system* instead. Swapping families in later is a font-file drop-in.
+
+**Dependency maintenance**
+- Three newly published advisories appeared during this release (`nanoid` high, `@dicebear/initials` moderate, `postcss-selector-parser` low). All unrelated to the redesign; patched via `pnpm.overrides`. Audit back to zero.
+
+**Files changed**
+- Added: `docs/DESIGN_SYSTEM.md`
+- Modified: `src/app/globals.css` (token layer rewritten, type system added), `tailwind.config.ts` (brand/signal/highlight scales, tracking), `src/lib/constants.ts` (container/connection palettes, paper note colour), `src/app/page.tsx`, `src/app/guide/page.tsx`, `src/components/marketing/site-header.tsx`, `src/components/marketing/site-footer.tsx`, `src/components/marketing/legal-page.tsx`, `src/components/marketing/canvas-hero.tsx`, `src/components/common/markdown-renderer.tsx`, `src/components/common/import-story-dialog.tsx`, plus every component referencing the old `violet-`/`emerald-`/`amber-` utilities (remapped to `brand-`/`signal-`/`highlight-`), `src/lib/version.ts`, `package.json`
 
 ### [0.15.0] — 2026-08-08
 

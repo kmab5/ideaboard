@@ -34,11 +34,9 @@ export function LegalPage({ title, lastUpdated, intro, sections, closing }: Lega
               <ArrowLeft className="h-4 w-4" />
               Back home
             </Link>
-            <h1 className="mt-6 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-              {title}
-            </h1>
+            <h1 className="display-1 mt-6">{title}</h1>
             <p className="mt-3 text-sm text-muted-foreground">Last updated: {lastUpdated}</p>
-            <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">{intro}</p>
+            <p className="measure prose-body mt-6 text-muted-foreground">{intro}</p>
           </div>
         </div>
 
@@ -46,7 +44,7 @@ export function LegalPage({ title, lastUpdated, intro, sections, closing }: Lega
           {/* Table of contents */}
           <aside className="hidden lg:block">
             <nav className="sticky top-24" aria-label="On this page">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="label-mono mb-3 text-muted-foreground">
                 On this page
               </p>
               <ul className="space-y-2 border-l border-border">
@@ -54,7 +52,7 @@ export function LegalPage({ title, lastUpdated, intro, sections, closing }: Lega
                   <li key={section.id}>
                     <a
                       href={`#${section.id}`}
-                      className="-ml-px block border-l-2 border-transparent py-0.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-violet-500 hover:text-foreground"
+                      className="-ml-px block border-l-2 border-transparent py-0.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-brand-500 hover:text-foreground"
                     >
                       {section.heading}
                     </a>
@@ -73,10 +71,10 @@ export function LegalPage({ title, lastUpdated, intro, sections, closing }: Lega
                 className="scroll-mt-24 border-border/60 py-8 first:pt-0 [&:not(:last-child)]:border-b"
               >
                 <div className="flex items-baseline gap-3">
-                  <span className="font-mono text-sm text-violet-500">
+                  <span className="font-mono text-sm text-brand-600 dark:text-brand-400">
                     {String(index + 1).padStart(2, '0')}
                   </span>
-                  <h2 className="text-xl font-semibold tracking-tight">{section.heading}</h2>
+                  <h2 className="display-3">{section.heading}</h2>
                 </div>
                 <div className="legal-prose mt-4 pl-0 sm:pl-9">{section.body}</div>
               </section>

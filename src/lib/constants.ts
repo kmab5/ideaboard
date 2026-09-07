@@ -12,7 +12,7 @@ export interface NoteColor {
 }
 
 export const NOTE_COLORS: NoteColor[] = [
-  { value: '#FFFFFF', label: 'White', bg: 'bg-white' },
+  { value: '#FDFCF8', label: 'Paper', bg: 'bg-[#FDFCF8]' },
   { value: '#FFF9C4', label: 'Yellow', bg: 'bg-yellow-100' },
   { value: '#FFCCBC', label: 'Orange', bg: 'bg-orange-100' },
   { value: '#F8BBD9', label: 'Pink', bg: 'bg-pink-100' },
@@ -31,14 +31,14 @@ export const NOTE_COLOR_BG: Record<string, string> = Object.fromEntries(
 );
 
 /** Palette used when assigning a color to a new connection. */export const CONNECTION_COLORS: string[] = [
-  '#6b7280',
-  '#ef4444',
-  '#f97316',
-  '#eab308',
-  '#22c55e',
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
+  '#6B6B78', // warm gray (default)
+  '#E0503F', // red
+  '#E8823A', // orange
+  '#F5C451', // highlight amber
+  '#3DE08A', // signal green
+  '#3B9BE8', // blue
+  '#6D4AFF', // brand indigo-violet
+  '#E85D9E', // rose
 ];
 
 export const DEFAULT_NOTE_SIZE = { width: 200, height: 150 } as const;
@@ -55,12 +55,12 @@ export function randomFrom<T>(items: readonly T[]): T {
 
 /** Palette for container borders/tints (PRD 4.7.2 "Color"). */
 export const CONTAINER_COLORS: string[] = [
-  '#7c3aed', // violet
-  '#0891b2', // cyan
-  '#22c55e', // green
-  '#f59e0b', // amber
-  '#ec4899', // pink
-  '#6b7280', // gray
+  '#6D4AFF', // brand indigo-violet
+  '#0E9BA8', // teal
+  '#3DE08A', // signal green
+  '#F5C451', // highlight amber
+  '#E85D9E', // rose
+  '#6B6B78', // warm gray
 ];
 
 export const DEFAULT_CONTAINER_SIZE = { width: 480, height: 360 } as const;

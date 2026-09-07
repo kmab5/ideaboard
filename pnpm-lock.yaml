@@ -20,6 +20,9 @@ overrides:
   rollup@>=4.0.0 <4.59.0: ^4.59.0
   ajv@<6.14.0: ^6.14.0
   vite: ^7.3.6
+  nanoid@<3.3.18: ^3.3.18
+  postcss-selector-parser@>=6.1.0 <6.1.3: ^6.1.3
+  '@dicebear/initials@<=9.4.2': ^9.4.3
 
 importers:
 
@@ -322,8 +325,8 @@ packages:
     peerDependencies:
       '@dicebear/core': ^9.0.0
 
-  '@dicebear/initials@9.4.2':
-    resolution: {integrity: sha512-yePuIUasmwtl9IrtB6rEzE/zb5fImKP/neW0CdcTC2MwLgMuP1GLHEGRgg1zI8exIh+PMv1YdLGyyUuRTE2Qpw==}
+  '@dicebear/initials@9.4.3':
+    resolution: {integrity: sha512-/3Mzpr0FciRPWqxswOOsgjyO6tE7ZhNax/kXES050rnw8XdJ/viezN+Ip7FtNfXm+QF7sboxE8JX3L3hq54rIw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@dicebear/core': ^9.0.0
@@ -3101,8 +3104,8 @@ packages:
     resolution: {integrity: sha512-tacvGzUY5o2D8CBh2rrwxyNojUsZNU2zjNTzKQrkgGJQTbGAfArVWXSKMBokBeeg6C7OLRGUEyoFlYbfeWQIqw==}
     engines: {node: '>=20.17'}
 
-  nanoid@3.3.17:
-    resolution: {integrity: sha512-xQLf0A3HOMlgHq0n247/LRuAOYmB7dXJ/DvAxGvsSBij45XtBSmQycu+F8ODbHwns/XyFZagyL1+J0Offw1E0g==}
+  nanoid@3.3.18:
+    resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -3309,8 +3312,8 @@ packages:
     peerDependencies:
       postcss: ^8.5.23
 
-  postcss-selector-parser@6.1.2:
-    resolution: {integrity: sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==}
+  postcss-selector-parser@6.1.4:
+    resolution: {integrity: sha512-bIoJLOmjCO1S9XdY/DcnR5hJxvrDir1PbGChrzXG3vw0/FOliy/fA3dmdhQ441kah4gKv+TwckGzex6wNS5cnQ==}
     engines: {node: '>=4'}
 
   postcss-value-parser@4.2.0:
@@ -4152,7 +4155,7 @@ snapshots:
       '@dicebear/glass': 9.4.2(@dicebear/core@9.4.3)
       '@dicebear/icons': 9.4.2(@dicebear/core@9.4.3)
       '@dicebear/identicon': 9.4.2(@dicebear/core@9.4.3)
-      '@dicebear/initials': 9.4.2(@dicebear/core@9.4.3)
+      '@dicebear/initials': 9.4.3(@dicebear/core@9.4.3)
       '@dicebear/lorelei': 9.4.2(@dicebear/core@9.4.3)
       '@dicebear/lorelei-neutral': 9.4.2(@dicebear/core@9.4.3)
       '@dicebear/micah': 9.4.2(@dicebear/core@9.4.3)
@@ -4200,7 +4203,7 @@ snapshots:
     dependencies:
       '@dicebear/core': 9.4.3
 
-  '@dicebear/initials@9.4.2(@dicebear/core@9.4.3)':
+  '@dicebear/initials@9.4.3(@dicebear/core@9.4.3)':
     dependencies:
       '@dicebear/core': 9.4.3
 
@@ -7235,7 +7238,7 @@ snapshots:
 
   nano-spawn@2.0.0: {}
 
-  nanoid@3.3.17: {}
+  nanoid@3.3.18: {}
 
   napi-postinstall@0.3.4: {}
 
@@ -7421,9 +7424,9 @@ snapshots:
   postcss-nested@6.2.0(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 6.1.2
+      postcss-selector-parser: 6.1.4
 
-  postcss-selector-parser@6.1.2:
+  postcss-selector-parser@6.1.4:
     dependencies:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
@@ -7432,7 +7435,7 @@ snapshots:
 
   postcss@8.5.26:
     dependencies:
-      nanoid: 3.3.17
+      nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -7963,7 +7966,7 @@ snapshots:
       postcss-js: 4.1.0(postcss@8.5.26)
       postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.26)(yaml@2.9.0)
       postcss-nested: 6.2.0(postcss@8.5.26)
-      postcss-selector-parser: 6.1.2
+      postcss-selector-parser: 6.1.4
       resolve: 1.22.11
       sucrase: 3.35.1
     transitivePeerDependencies:

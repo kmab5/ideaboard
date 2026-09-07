@@ -453,7 +453,7 @@ const ConnectionEdge = memo(
               className={cn(
                 'rounded px-1 py-0.5 text-xs',
                 isActiveBranch
-                  ? 'bg-violet-500 font-medium text-white'
+                  ? 'bg-brand-500 font-medium text-white'
                   : 'bg-muted text-muted-foreground',
                 isInactiveBranch && 'opacity-50'
               )}

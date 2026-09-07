@@ -139,9 +139,9 @@ export function ImportStoryDialog({
           )}
 
           {checksumWarning && (
-            <div className="flex items-start gap-2 rounded-md border border-amber-400 bg-amber-500/10 p-3 text-sm">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-              <p className="text-amber-700 dark:text-amber-300">
+            <div className="flex items-start gap-2 rounded-md border border-highlight-400 bg-highlight-500/10 p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-highlight-600" />
+              <p className="text-highlight-800 dark:text-highlight-300">
                 This archive&apos;s checksum doesn&apos;t match its contents — it may have been
                 edited or partially corrupted. You can still import it, but check the result.
               </p>
@@ -151,7 +151,7 @@ export function ImportStoryDialog({
           {bulk && (
             <div className="space-y-2 rounded-md border bg-muted/40 p-3">
               <div className="flex items-center gap-2">
-                <FileJson className="h-4 w-4 shrink-0 text-violet-500" />
+                <FileJson className="h-4 w-4 shrink-0 text-brand-500" />
                 <p className="text-sm font-medium">
                   Bulk backup — {bulk.length} {bulk.length === 1 ? 'story' : 'stories'}
                 </p>
@@ -174,7 +174,7 @@ export function ImportStoryDialog({
           {doc && (
             <div className="space-y-3 rounded-md border bg-muted/40 p-3">
               <div className="flex items-center gap-2">
-                <FileJson className="h-4 w-4 shrink-0 text-violet-500" />
+                <FileJson className="h-4 w-4 shrink-0 text-brand-500" />
                 <p className="text-sm font-medium">Ready to import</p>
               </div>
 
@@ -200,7 +200,7 @@ export function ImportStoryDialog({
                   onChange={(e) => setTitle(e.target.value)}
                 />
                 {isDuplicateTitle && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                  <p className="text-xs text-highlight-800 dark:text-highlight-300">
                     You already have a story with this title. Importing will create a second one.
                   </p>
                 )}

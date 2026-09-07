@@ -325,8 +325,8 @@ export default function SettingsPage() {
                     </>
                   ) : (
                     <>
-                      <XCircle className="h-4 w-4 text-amber-500" />
-                      <span className="text-sm font-medium text-amber-500">Not verified</span>
+                      <XCircle className="h-4 w-4 text-highlight-500" />
+                      <span className="text-sm font-medium text-highlight-500">Not verified</span>
                     </>
                   )}
                 </div>

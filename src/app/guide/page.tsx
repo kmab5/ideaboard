@@ -19,7 +19,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
 function Tip({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-4 flex gap-3 rounded-lg border border-border/70 bg-muted/40 p-3 text-sm">
-      <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+      <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
       <p className="text-muted-foreground">{children}</p>
     </div>
   );
@@ -523,12 +523,12 @@ export default function GuidePage() {
               Back home
             </Link>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">Guide</h1>
-              <span className="rounded-full border border-violet-300 bg-violet-500/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-violet-700 dark:border-violet-800 dark:text-violet-300">
+              <h1 className="display-1">Guide</h1>
+              <span className="label-mono rounded-full border border-brand-300 bg-brand-500/10 px-2.5 py-1 text-brand-700 dark:border-brand-800 dark:text-brand-300">
                 v{APP_VERSION}
               </span>
             </div>
-            <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">
+            <p className="measure prose-body mt-6 text-muted-foreground">
               Everything IdeaBoard can do today, from your first note to wiring up the variables your
               story depends on. This guide grows with each release.
             </p>
@@ -538,7 +538,7 @@ export default function GuidePage() {
         <div className="mx-auto grid max-w-6xl gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[220px_1fr]">
           <aside className="hidden lg:block">
             <nav className="sticky top-24" aria-label="On this page">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="label-mono mb-3 text-muted-foreground">
                 Contents
               </p>
               <ul className="space-y-2 border-l border-border">
@@ -546,7 +546,7 @@ export default function GuidePage() {
                   <li key={section.id}>
                     <a
                       href={`#${section.id}`}
-                      className="-ml-px block border-l-2 border-transparent py-0.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-violet-500 hover:text-foreground"
+                      className="-ml-px block border-l-2 border-transparent py-0.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-brand-500 hover:text-foreground"
                     >
                       {section.heading}
                     </a>
@@ -563,18 +563,18 @@ export default function GuidePage() {
                 id={section.id}
                 className="scroll-mt-24 border-border/60 py-8 first:pt-0 [&:not(:last-child)]:border-b"
               >
-                <h2 className="text-xl font-semibold tracking-tight">{section.heading}</h2>
+                <h2 className="display-3">{section.heading}</h2>
                 <div className="legal-prose mt-4">{section.body}</div>
               </section>
             ))}
 
             <div className="mt-10 flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-4 text-sm text-muted-foreground">
-              <Keyboard className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+              <Keyboard className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
               <p>
                 Looking for what changed recently? See the{' '}
                 <Link
                   href="/#features"
-                  className="font-medium text-violet-600 hover:underline dark:text-violet-400"
+                  className="font-medium text-brand-600 hover:underline dark:text-brand-400"
                 >
                   feature overview
                 </Link>{' '}

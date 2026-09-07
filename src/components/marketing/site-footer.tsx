@@ -28,7 +28,7 @@ export function SiteFooter() {
         <div className="max-w-xs">
           <Link href="/" className="flex items-center gap-2.5">
             <AppIcon className="h-8 w-8" />
-            <span className="text-lg font-semibold tracking-tight">IdeaBoard</span>
+            <span className="text-lg font-semibold tracking-display">IdeaBoard</span>
           </Link>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
             A visual canvas for branching stories. Map your paths, wire them together, and keep every
@@ -38,7 +38,7 @@ export function SiteFooter() {
 
         {linkGroups.map((group) => (
           <div key={group.heading}>
-            <h2 className="text-sm font-semibold">{group.heading}</h2>
+            <h2 className="label-mono text-muted-foreground">{group.heading}</h2>
             <ul className="mt-4 space-y-3">
               {group.links.map((link) => (
                 <li key={link.label}>

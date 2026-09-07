@@ -7,11 +7,11 @@ import { AppIcon } from '@/components/icons';
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5" aria-label="IdeaBoard home">
           <AppIcon className="h-8 w-8" />
-          <span className="text-lg font-semibold tracking-tight">IdeaBoard</span>
+          <span className="text-lg font-semibold tracking-display">IdeaBoard</span>
         </Link>
 
         <nav className="flex items-center gap-1 sm:gap-2">
@@ -19,19 +19,19 @@ export function SiteHeader() {
             href="/#features"
             className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-block"
           >
-            Features
+            features
           </Link>
           <Link
             href="/#how"
             className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-block"
           >
-            How it works
+            how it works
           </Link>
           <Link
             href="/guide"
             className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-block"
           >
-            Guide
+            guide
           </Link>
           <ThemeToggle />
           <Link href="/login">

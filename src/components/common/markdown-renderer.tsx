@@ -100,7 +100,7 @@ function TextWithComponents({
           return (
             <span
               key={index}
-              className="inline-flex items-center gap-0.5 rounded border border-amber-400 bg-amber-500/15 px-1.5 py-0.5 font-mono text-xs font-semibold text-amber-700 dark:text-amber-300"
+              className="inline-flex items-center gap-0.5 rounded border border-highlight-400 bg-highlight-500/15 px-1.5 py-0.5 font-mono text-xs font-semibold text-highlight-800 dark:text-highlight-300"
               title={`Unknown component: ${name}`}
             >
               <span aria-hidden>⚠</span>
@@ -201,7 +201,7 @@ export function MarkdownRenderer({
         return (
           <span
             key={`${keyPrefix}-l${index}`}
-            className="inline-flex items-center gap-0.5 rounded border border-amber-400 bg-amber-500/15 px-1.5 py-0.5 font-mono text-xs font-semibold text-amber-700 dark:text-amber-300"
+            className="inline-flex items-center gap-0.5 rounded border border-highlight-400 bg-highlight-500/15 px-1.5 py-0.5 font-mono text-xs font-semibold text-highlight-800 dark:text-highlight-300"
             title={
               resolved.boardId
                 ? `No container "${segment.target.containerName}" on board "${segment.target.boardName}"`
@@ -240,8 +240,8 @@ export function MarkdownRenderer({
               : undefined
           }
           className={cn(
-            'inline-flex items-center rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-xs font-semibold text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-300',
-            clickable && 'cursor-pointer hover:bg-emerald-500/30'
+            'inline-flex items-center rounded bg-signal-500/20 px-1.5 py-0.5 font-mono text-xs font-semibold text-signal-800 dark:bg-signal-400/20 dark:text-signal-300',
+            clickable && 'cursor-pointer hover:bg-signal-500/30'
           )}
           title={segment.target.containerName ? 'Go to container' : 'Go to board'}
         >

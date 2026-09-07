@@ -14,12 +14,12 @@ const NODES: Record<NodeId, { x: number; y: number }> = {
 };
 
 const EDGES: { from: NodeId; to: NodeId; color: string; delay: number }[] = [
-  { from: 'prologue', to: 'signal', color: '#7c3aed', delay: 0.3 },
-  { from: 'signal', to: 'investigate', color: '#0891b2', delay: 0.5 },
-  { from: 'signal', to: 'retreat', color: '#f59e0b', delay: 0.65 },
-  { from: 'investigate', to: 'trust', color: '#3b82f6', delay: 0.85 },
-  { from: 'retreat', to: 'trust', color: '#ec4899', delay: 1.0 },
-  { from: 'trust', to: 'ending', color: '#22c55e', delay: 1.2 },
+  { from: 'prologue', to: 'signal', color: '#6D4AFF', delay: 0.3 },
+  { from: 'signal', to: 'investigate', color: '#0E9BA8', delay: 0.5 },
+  { from: 'signal', to: 'retreat', color: '#F5C451', delay: 0.65 },
+  { from: 'investigate', to: 'trust', color: '#3B9BE8', delay: 0.85 },
+  { from: 'retreat', to: 'trust', color: '#E85D9E', delay: 1.0 },
+  { from: 'trust', to: 'ending', color: '#3DE08A', delay: 1.2 },
 ];
 
 function edgePath(from: NodeId, to: NodeId): string {
@@ -98,7 +98,7 @@ export function CanvasHero({ className }: { className?: string }) {
       </svg>
 
       {/* Notes */}
-      <Note node="prologue" color="#FFF9C4" rise={0.15} float className="max-w-[42vw] sm:max-w-none">
+      <Note node="prologue" color="#FBF3C9" rise={0.15} float className="max-w-[42vw] sm:max-w-none">
         <p className="text-[0.7rem] font-semibold sm:text-xs">Prologue</p>
         <p className="text-[0.62rem] text-gray-600 sm:text-[0.7rem]">Cold open on the relay</p>
       </Note>
@@ -117,7 +117,7 @@ export function CanvasHero({ className }: { className?: string }) {
 
       <Note node="trust" color="#E1BEE7" rise={0.85} float>
         <p className="mb-1 text-[0.7rem] font-semibold sm:text-xs">Choice</p>
-        <span className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[0.6rem] font-semibold text-violet-800 sm:text-[0.68rem]">
+        <span className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[0.6rem] font-semibold text-brand-800 sm:text-[0.68rem]">
           {'{{trust}}'} +1
         </span>
       </Note>

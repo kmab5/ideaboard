@@ -97,7 +97,7 @@ export function BoardOverview({
         key={board.id}
         className={cn(
           'group flex items-center gap-2 rounded-md border px-2 py-1.5',
-          board.id === activeBoardId ? 'border-violet-500 bg-violet-500/10' : 'bg-card'
+          board.id === activeBoardId ? 'border-brand-500 bg-brand-500/10' : 'bg-card'
         )}
       >
         <button
@@ -150,7 +150,7 @@ export function BoardOverview({
     <div className="absolute left-4 top-4 z-20 flex max-h-[calc(100%-2rem)] w-80 flex-col rounded-lg border bg-background shadow-xl">
       <div className="flex items-center justify-between border-b px-3 py-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <LayoutGrid className="h-4 w-4 text-violet-500" />
+          <LayoutGrid className="h-4 w-4 text-brand-500" />
           Boards
           <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-normal text-muted-foreground">
             {boards.length}

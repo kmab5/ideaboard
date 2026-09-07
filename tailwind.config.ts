@@ -13,7 +13,54 @@ const config: Config = {
   			sans: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
   			mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
   		},
+  		letterSpacing: {
+  			// Display type is set tight, as in the brand kit's type scale.
+  			tightest: '-0.045em',
+  			display: '-0.035em',
+  			// Mono labels are set wide and uppercase.
+  			label: '0.10em',
+  		},
   		colors: {
+  			// IdeaBoard's signature: a deeper, bluer indigo-violet than the
+  			// kmab purple it takes its cue from.
+  			brand: {
+  				50: '#F2EFFF',
+  				100: '#E6E0FF',
+  				200: '#CFC3FF',
+  				300: '#B29FFF',
+  				400: '#9375FF',
+  				500: '#6D4AFF',
+  				600: '#5A35E8',
+  				700: '#4726BC',
+  				800: '#361E90',
+  				900: '#261566',
+  			},
+  			// Brand-kit green, used for affirmative signals and board links.
+  			signal: {
+  				50: '#EFFDF6',
+  				100: '#DCF9EA',
+  				200: '#B9F4D5',
+  				300: '#92EEBD',
+  				400: '#68E7A4',
+  				500: '#3DE08A',
+  				600: '#34C177',
+  				700: '#2B9D61',
+  				800: '#21794B',
+  				900: '#175534',
+  			},
+  			// Brand-kit amber, used for warnings and technical notes.
+  			highlight: {
+  				50: '#FEFAF1',
+  				100: '#FDF4E0',
+  				200: '#FBEAC0',
+  				300: '#F9DE9E',
+  				400: '#F7D177',
+  				500: '#F5C451',
+  				600: '#D3A946',
+  				700: '#AC8939',
+  				800: '#846A2C',
+  				900: '#5D4A1F',
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

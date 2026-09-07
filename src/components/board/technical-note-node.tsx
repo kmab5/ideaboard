@@ -147,7 +147,7 @@ const TechnicalNoteNode = memo(({ data, selected }: NodeProps<TechnicalNoteNodeD
                     <span className="truncate font-mono">{describeUpdate(update)}</span>
                     {invalid && (
                       <AlertTriangle
-                        className="h-3 w-3 shrink-0 text-amber-500"
+                        className="h-3 w-3 shrink-0 text-highlight-500"
                         aria-label={`Unknown component: ${update.component}`}
                       />
                     )}

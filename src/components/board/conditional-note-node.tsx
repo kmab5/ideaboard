@@ -82,14 +82,14 @@ const ConditionalNoteNode = memo(({ data, selected }: NodeProps<ConditionalNoteN
 
       <div
         className={cn(
-          'flex h-full w-full flex-col overflow-hidden rounded-lg border-2 border-violet-400 bg-white shadow-md shadow-black/5 dark:bg-gray-900',
-          selected && 'ring-2 ring-violet-500 ring-offset-1'
+          'flex h-full w-full flex-col overflow-hidden rounded-lg border-2 border-brand-400 bg-white shadow-md shadow-black/5 dark:bg-gray-900',
+          selected && 'ring-2 ring-brand-500 ring-offset-1'
         )}
       >
         {/* Header */}
-        <div className="flex items-center gap-1.5 border-b border-violet-200 bg-violet-50 px-2 py-1.5 dark:border-violet-900 dark:bg-violet-950/40">
-          <GitBranch className="h-3.5 w-3.5 shrink-0 text-violet-600 dark:text-violet-400" />
-          <span className="shrink-0 rounded bg-violet-600 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-white">
+        <div className="flex items-center gap-1.5 border-b border-brand-200 bg-brand-50 px-2 py-1.5 dark:border-brand-900 dark:bg-brand-950/40">
+          <GitBranch className="h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-brand-400" />
+          <span className="shrink-0 rounded bg-brand-600 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-white">
             If
           </span>
           {isEditingTitle ? (
@@ -154,16 +154,16 @@ const ConditionalNoteNode = memo(({ data, selected }: NodeProps<ConditionalNoteN
                   className={cn(
                     'rounded-md border px-2 py-1.5 text-xs transition-colors',
                     isActive
-                      ? 'border-violet-500 bg-violet-500/10 font-medium'
+                      ? 'border-brand-500 bg-brand-500/10 font-medium'
                       : 'border-border/60 bg-muted/30 text-muted-foreground'
                   )}
                 >
                   <div className="flex items-center gap-1">
-                    {isActive && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />}
+                    {isActive && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" />}
                     <span className="truncate">{branch.label}</span>
                     {invalid.length > 0 && (
                       <AlertTriangle
-                        className="h-3 w-3 shrink-0 text-amber-500"
+                        className="h-3 w-3 shrink-0 text-highlight-500"
                         aria-label={`References missing component(s): ${invalid.join(', ')}`}
                       />
                     )}
@@ -191,8 +191,8 @@ const ConditionalNoteNode = memo(({ data, selected }: NodeProps<ConditionalNoteN
         </div>
       </div>
 
-      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !bg-violet-500" />
-      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-violet-500" />
+      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !bg-brand-500" />
+      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-brand-500" />
 
       <ConditionalBranchEditor
         open={isEditorOpen}

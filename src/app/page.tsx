@@ -67,7 +67,7 @@ function ComponentVignette() {
               key={c.name}
               className="flex items-center justify-between rounded-md border border-border/70 bg-muted/40 px-2.5 py-1.5"
             >
-              <span className="font-mono text-xs font-semibold text-violet-600 dark:text-violet-400">
+              <span className="font-mono text-xs font-semibold text-brand-600 dark:text-brand-400">
                 @{c.name}
               </span>
               <span className="text-[0.7rem] text-muted-foreground">{c.type}</span>
@@ -78,7 +78,7 @@ function ComponentVignette() {
         <div className="mt-3 rounded-md border border-black/10 bg-[#E1BEE7] p-2.5 text-gray-900">
           <p className="text-xs">
             The lock clicks if{' '}
-            <span className="rounded bg-black/10 px-1 py-0.5 font-mono text-[0.68rem] font-semibold text-violet-800">
+            <span className="rounded bg-black/10 px-1 py-0.5 font-mono text-[0.68rem] font-semibold text-brand-800">
               {'{{hasKey}}'}
             </span>
           </p>
@@ -203,14 +203,17 @@ export default function Home() {
           <div className="mkt-dotgrid mkt-grid-fade absolute inset-0 opacity-60" aria-hidden />
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:py-28">
             <div>
-              <h1
-                className="mkt-rise text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl"
-                style={{ animationDelay: '0.05s' }}
+              <p
+                className="mkt-rise label-mono text-brand-600 dark:text-brand-400"
+                style={{ animationDelay: '0.02s' }}
               >
+                Interactive fiction, mapped
+              </p>
+              <h1 className="mkt-rise display-1 mt-4" style={{ animationDelay: '0.05s' }}>
                 Your branching story, finally in one view
               </h1>
               <p
-                className="mkt-rise mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
+                className="mkt-rise prose-body mt-6 max-w-xl text-muted-foreground"
                 style={{ animationDelay: '0.15s' }}
               >
                 IdeaBoard is a visual canvas for interactive fiction. Map every scene and choice,
@@ -251,7 +254,8 @@ export default function Home() {
         <section id="how" className="scroll-mt-20 border-t border-border/60 bg-muted/30">
           <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
             <Reveal>
-              <h2 className="max-w-2xl text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+              <p className="label-mono text-brand-600 dark:text-brand-400">How it works</p>
+              <h2 className="display-2 mt-3 max-w-2xl">
                 From a tangle in your head to a map on the wall
               </h2>
               <p className="mt-4 max-w-xl text-lg text-muted-foreground">
@@ -264,7 +268,7 @@ export default function Home() {
                 <Reveal key={step.n} delay={i * 90}>
                   <li className="relative">
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-2xl font-semibold text-violet-500">
+                      <span className="font-mono text-2xl font-semibold tracking-display text-brand-600 dark:text-brand-400">
                         {step.n}
                       </span>
                       <span className="h-px flex-1 bg-border" />
@@ -282,7 +286,8 @@ export default function Home() {
         <section id="features" className="scroll-mt-20">
           <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
             <Reveal>
-              <h2 className="max-w-2xl text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+              <p className="label-mono text-brand-600 dark:text-brand-400">Features</p>
+              <h2 className="display-2 mt-3 max-w-2xl">
                 Everything a branching story needs, nothing it doesn&apos;t
               </h2>
             </Reveal>
@@ -294,9 +299,7 @@ export default function Home() {
                   <Reveal key={feature.title}>
                     <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
                       <div className={cn('order-1', flip ? 'lg:order-2' : 'lg:order-1')}>
-                        <h3 className="text-2xl font-semibold tracking-tight text-balance">
-                          {feature.title}
-                        </h3>
+                        <h3 className="display-3 text-balance">{feature.title}</h3>
                         <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
                           {feature.body}
                         </p>
@@ -321,9 +324,7 @@ export default function Home() {
         <section className="border-t border-border/60 bg-muted/30">
           <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
             <Reveal>
-              <h2 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-                Made for people who write in branches
-              </h2>
+              <h2 className="display-2">Made for people who write in branches</h2>
               <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
                 Interactive fiction and ChoiceScript authors, Twine tinkerers, tabletop and RPG
                 designers, game writers, and worldbuilders — anyone whose story stops being a line
@@ -336,30 +337,28 @@ export default function Home() {
         {/* CTA */}
         <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <Reveal>
-            <div className="relative overflow-hidden rounded-3xl bg-violet-600 px-6 py-16 text-center sm:px-16">
+            <div className="relative overflow-hidden rounded-2xl bg-brand-600 px-6 py-16 text-center sm:px-16">
               <div
                 className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle,white_1px,transparent_1px)] [background-size:24px_24px]"
                 aria-hidden
               />
               <div className="relative mx-auto max-w-xl">
-                <h2 className="text-3xl font-bold tracking-tight text-balance text-white sm:text-4xl">
-                  Start mapping your story today
-                </h2>
-                <p className="mt-4 text-lg text-violet-100">
+                <h2 className="display-2 text-white">Start mapping your story today</h2>
+                <p className="mt-4 text-lg text-brand-100">
                   Create your first board in under a minute. No credit card, no setup.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Link href="/register">
                     <Button
                       size="lg"
-                      className="w-full gap-2 bg-white text-violet-700 hover:bg-violet-50 sm:w-auto"
+                      className="w-full gap-2 bg-white text-brand-700 hover:bg-brand-50 sm:w-auto"
                     >
                       Create your first board
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                 </div>
-                <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-violet-100">
+                <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-brand-100">
                   {['Free to start', 'Private by default', 'Works in your browser'].map((item) => (
                     <li key={item} className="flex items-center gap-1.5">
                       <Check className="h-4 w-4" />

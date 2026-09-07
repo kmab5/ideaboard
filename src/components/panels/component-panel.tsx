@@ -414,7 +414,7 @@ export function ComponentPanel({
                               className={cn(
                                 'rounded px-1.5 py-0.5 font-mono text-[0.7rem] transition-colors',
                                 isSelected
-                                  ? 'bg-violet-500 font-semibold text-white'
+                                  ? 'bg-brand-500 font-semibold text-white'
                                   : 'bg-muted hover:bg-muted-foreground/20'
                               )}
                             >
